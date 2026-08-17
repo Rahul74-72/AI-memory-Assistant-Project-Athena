@@ -1,3 +1,5 @@
+import re
+
 from sqlalchemy import select
 
 from app.database.database import SessionLocal
@@ -10,9 +12,21 @@ class MemoryRetriever:
 
         self.session = SessionLocal()
 
+    @staticmethod
+    def _search_words(question):
+        """Return meaningful words without punctuation or short tokens."""
+        return [
+            word
+            for word in re.findall(r"\b\w+\b", question.lower())
+            if len(word) >= 4
+        ]
+
     def search(self, question):
 
-        words = question.lower().split()
+        words = self._search_words(question)
+
+        if not words:
+            return []
 
         results = []
 
@@ -29,23 +43,18 @@ class MemoryRetriever:
         for memory in memories:
 
             searchable_text = (
+                f"{memory.subject} "
                 f"{memory.relation} "
                 f"{memory.value} "
                 f"{memory.category}"
             ).lower()
 
-            for word in words:
+            searchable_words = set(
+                re.findall(r"\b\w+\b", searchable_text)
+            )
 
-                if len(word) < 4:
-                    continue
-
-                if word in searchable_text:
-
-                    if memory not in results:
-
-                        results.append(memory)
-
-                    break
+            if any(word in searchable_words for word in words):
+                results.append(memory)
 
         return results
 
