@@ -23,20 +23,32 @@ class MemoryRetriever:
 
     @staticmethod
     def _score_memory(memory, words):
-        """Score a memory by matched query words, then by importance."""
-        searchable_text = (
-            f"{memory.subject} "
-            f"{memory.relation} "
-            f"{memory.value} "
-            f"{memory.category}"
-        ).lower()
+        """Score a memory using field-aware relevance, then importance."""
+        fields = {
+            "subject": (memory.subject, 3),
+            "relation": (memory.relation, 3),
+            "value": (memory.value, 2),
+            "category": (memory.category, 1),
+        }
 
-        searchable_words = set(
-            re.findall(r"\b\w+\b", searchable_text)
-        )
-        matched_words = sum(word in searchable_words for word in set(words))
+        field_words = {
+            name: set(re.findall(r"\b\w+\b", (text or "").lower()))
+            for name, (text, _) in fields.items()
+        }
 
-        return matched_words, memory.importance or 0
+        matched_score = 0
+        for word in set(words):
+            best_weight = max(
+                (
+                    weight
+                    for name, (_, weight) in fields.items()
+                    if word in field_words[name]
+                ),
+                default=0,
+            )
+            matched_score += best_weight
+
+        return matched_score, memory.importance or 0
 
     def search(self, question):
 
