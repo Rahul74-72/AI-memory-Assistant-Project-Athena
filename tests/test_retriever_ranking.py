@@ -21,7 +21,7 @@ def test_score_memory_counts_unique_matching_words():
     assert MemoryRetriever._score_memory(
         memory,
         ["machine", "learning", "machine", "database"],
-    ) == (2, 5)
+    ) == (4, 5)
 
 
 def test_score_memory_uses_importance_as_tie_breaker():
@@ -40,4 +40,13 @@ def test_score_memory_searches_subject_and_category():
     assert MemoryRetriever._score_memory(
         memory,
         ["athena", "project"],
-    ) == (2, 5)
+    ) == (4, 5)
+
+
+def test_score_memory_prefers_subject_match_over_category_match():
+    subject_match = make_memory(subject="Athena", category="other")
+    category_match = make_memory(subject="Other", category="Athena")
+
+    assert MemoryRetriever._score_memory(
+        subject_match, ["athena"]
+    ) > MemoryRetriever._score_memory(category_match, ["athena"])
