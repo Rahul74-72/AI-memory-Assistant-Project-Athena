@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 from app.retrieval.retriever import MemoryRetriever
 
@@ -50,3 +51,22 @@ def test_score_memory_prefers_subject_match_over_category_match():
     assert MemoryRetriever._score_memory(
         subject_match, ["athena"]
     ) > MemoryRetriever._score_memory(category_match, ["athena"])
+
+
+def test_search_can_limit_ranked_results():
+    retriever = MemoryRetriever.__new__(MemoryRetriever)
+    memories = [
+        make_memory(subject="Athena", importance=5),
+        make_memory(subject="Athena", importance=9),
+        make_memory(subject="Athena", importance=1),
+    ]
+
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = memories
+    retriever.session = MagicMock()
+    retriever.session.execute.return_value = result
+
+    ranked = retriever.search("Athena", limit=2)
+
+    assert len(ranked) == 2
+    assert ranked == [memories[1], memories[0]]
