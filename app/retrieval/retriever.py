@@ -50,8 +50,8 @@ class MemoryRetriever:
 
         return matched_score, memory.importance or 0
 
-    def search(self, question):
-
+    def search(self, question, limit=None):
+        """Return active memories ranked by relevance, optionally capped."""
         words = self._search_words(question)
 
         if not words:
@@ -78,7 +78,8 @@ class MemoryRetriever:
 
         results.sort(key=lambda item: item[0], reverse=True)
 
-        return [memory for _, memory in results]
+        ranked_memories = [memory for _, memory in results]
+        return ranked_memories[:limit] if limit is not None else ranked_memories
 
     def close(self):
 
