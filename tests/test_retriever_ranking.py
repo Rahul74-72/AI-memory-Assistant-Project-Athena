@@ -1,6 +1,8 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+import pytest
+
 from app.retrieval.retriever import MemoryRetriever
 
 
@@ -70,3 +72,11 @@ def test_search_can_limit_ranked_results():
 
     assert len(ranked) == 2
     assert ranked == [memories[1], memories[0]]
+
+
+def test_search_rejects_negative_limit():
+    retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.session = MagicMock()
+
+    with pytest.raises(ValueError, match="non-negative"):
+        retriever.search("Athena", limit=-1)
