@@ -52,6 +52,9 @@ class MemoryRetriever:
 
     def search(self, question, limit=None):
         """Return active memories ranked by relevance, optionally capped."""
+        if limit is not None and limit < 0:
+            raise ValueError("limit must be non-negative or None")
+
         words = self._search_words(question)
 
         if not words:
