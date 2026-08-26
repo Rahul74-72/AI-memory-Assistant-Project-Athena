@@ -80,3 +80,11 @@ def test_search_rejects_negative_limit():
 
     with pytest.raises(ValueError, match="non-negative"):
         retriever.search("Athena", limit=-1)
+
+
+def test_search_rejects_non_integer_limit():
+    retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.session = MagicMock()
+
+    with pytest.raises(TypeError, match="integer"):
+        retriever.search("Athena", limit="2")
