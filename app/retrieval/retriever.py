@@ -60,7 +60,7 @@ class MemoryRetriever:
 
         words = self._search_words(question)
 
-        if not words:
+        if not words or limit == 0:
             return []
 
         results = []
