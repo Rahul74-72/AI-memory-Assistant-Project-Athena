@@ -1,6 +1,9 @@
 from app.memory.memory import MemoryManager
 from app.memory.memory_store import MemoryStore
 from app.extractor.extractor import MemoryExtractor
+from app.context.context_builder import MemoryContextBuilder
+from app.context.context_builder import MemoryContextBuilder
+from app.llm.reasoner import AIReasoner
 
 
 class ChatEngine:
@@ -15,6 +18,10 @@ class ChatEngine:
 
         # Extract memories from user messages
         self.extractor = MemoryExtractor()
+
+        self.context_builder = MemoryContextBuilder(max_memories=5)
+
+        self.reasoner = AIReasoner()
 
     # =====================================================
     # MEMORY QUESTION DETECTION
@@ -57,6 +64,17 @@ class ChatEngine:
                 top_k=3,
                 threshold=0.20
             )
+
+            context = self.context_builder.build(
+             results
+            )
+
+            response = self.reasoner.answer(
+            user_question=user_message,
+             memory_context=context
+            )
+
+            return response
 
             if results:
 
