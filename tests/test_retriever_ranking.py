@@ -88,3 +88,11 @@ def test_search_rejects_non_integer_limit():
 
     with pytest.raises(TypeError, match="integer"):
         retriever.search("Athena", limit="2")
+
+
+def test_search_with_zero_limit_skips_database_query():
+    retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.session = MagicMock()
+
+    assert retriever.search("Athena", limit=0) == []
+    retriever.session.execute.assert_not_called()
