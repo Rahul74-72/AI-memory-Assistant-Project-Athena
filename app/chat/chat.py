@@ -2,7 +2,6 @@ from app.memory.memory import MemoryManager
 from app.memory.memory_store import MemoryStore
 from app.extractor.extractor import MemoryExtractor
 from app.context.context_builder import MemoryContextBuilder
-from app.context.context_builder import MemoryContextBuilder
 from app.llm.reasoner import AIReasoner
 
 
@@ -66,12 +65,12 @@ class ChatEngine:
             )
 
             context = self.context_builder.build(
-             results
+                results
             )
 
             response = self.reasoner.answer(
-            user_question=user_message,
-             memory_context=context
+                user_question=user_message,
+                memory_context=context
             )
 
             return response
