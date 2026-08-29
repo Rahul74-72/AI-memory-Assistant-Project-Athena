@@ -18,6 +18,12 @@ def make_memory(**overrides):
     return SimpleNamespace(**values)
 
 
+def test_search_words_normalizes_punctuation_and_short_tokens():
+    assert MemoryRetriever._search_words(
+        "What is Rahul's AI skill?"
+    ) == ["what", "rahul", "skill"]
+
+
 def test_score_memory_counts_unique_matching_words():
     memory = make_memory(value="machine learning project")
 
