@@ -75,62 +75,6 @@ class ChatEngine:
 
             return response
 
-            if results:
-
-                best_memory = results[0]["memory"]
-
-                relation = best_memory.relation
-                value = best_memory.value
-
-                if relation == "lives_in":
-                    return (
-                        f"You currently live in {value}."
-                    )
-
-                if relation == "likes":
-                    return (
-                        f"You like {value}."
-                    )
-
-                if relation == "loves":
-                    return (
-                        f"You love {value}."
-                    )
-
-                if relation == "studies":
-                    return (
-                        f"You study {value}."
-                    )
-
-                if relation == "goal":
-                    return (
-                        f"Your goal is to {value}."
-                    )
-
-                if relation == "building":
-                    return (
-                        f"You are building {value}."
-                    )
-
-                if relation == "current_job":
-                    return (
-                        f"Your current job is {value}."
-                    )
-
-                if relation == "skills":
-                    return (
-                        f"Your skill is {value}."
-                    )
-
-                return (
-                    f"I remember: {value}."
-                )
-
-            return (
-                "I couldn't find anything relevant "
-                "in my memory."
-            )
-
         return "I'll remember that."
 
     # =====================================================
