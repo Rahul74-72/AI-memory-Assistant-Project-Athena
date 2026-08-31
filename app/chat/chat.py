@@ -3,6 +3,7 @@ from app.memory.memory_store import MemoryStore
 from app.extractor.extractor import MemoryExtractor
 from app.context.context_builder import MemoryContextBuilder
 from app.llm.reasoner import AIReasoner
+import re
 
 
 class ChatEngine:
@@ -28,9 +29,7 @@ class ChatEngine:
 
     def is_memory_question(self, text):
 
-        text = text.lower()
-
-        keywords = [
+        keywords = {
             "what",
             "where",
             "who",
@@ -43,12 +42,10 @@ class ChatEngine:
             "live",
             "goal",
             "skill"
-        ]
+        }
 
-        return any(
-            word in text
-            for word in keywords
-        )
+        words = set(re.findall(r"\b\w+\b", text.lower()))
+        return bool(words & keywords)
 
     # =====================================================
     # GENERATE RESPONSE
