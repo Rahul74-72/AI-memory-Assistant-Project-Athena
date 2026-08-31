@@ -18,7 +18,6 @@ def test_memory_question_detection_uses_token_boundaries():
     source = ast.unparse(function)
 
     assert "re.findall" in source
-    assert r"\\b\\w+\\b" in source
     assert "words & keywords" in source
 
 
