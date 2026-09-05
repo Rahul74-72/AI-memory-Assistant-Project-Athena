@@ -1,11 +1,15 @@
 class MemoryContextBuilder:
 
     def __init__(self, max_memories=5):
+        if not isinstance(max_memories, int):
+            raise TypeError("max_memories must be an integer")
+        if max_memories < 0:
+            raise ValueError("max_memories must be non-negative")
         self.max_memories = max_memories
 
     def build(self, memories):
 
-        if not memories:
+        if not memories or self.max_memories == 0:
             return "No relevant memories were found."
 
         selected_memories = memories[:self.max_memories]
