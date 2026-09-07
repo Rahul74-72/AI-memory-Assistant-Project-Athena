@@ -19,7 +19,6 @@ class MemoryContextBuilder:
         for result in selected_memories:
 
             memory = result["memory"]
-            score = result["score"]
 
             line = (
                 f"- {memory.subject} "
