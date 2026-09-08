@@ -43,3 +43,31 @@ def test_context_builder_caps_context_to_configured_limit():
     ])
 
     assert result == "- Rahul likes Python"
+
+
+def test_context_builder_formats_underscored_relationships():
+    class Goal:
+        subject = "Rahul"
+        relation = "wants_to_become"
+        value = "AI Engineer"
+
+    builder = MemoryContextBuilder()
+
+    result = builder.build([{"memory": Goal(), "score": 0.9}])
+
+    assert result == "- Rahul wants to become AI Engineer"
+
+
+def test_context_builder_default_limit_allows_five_memories():
+    memories = [
+        {"memory": type("Memory", (), {
+            "subject": f"Person {index}",
+            "relation": "likes",
+            "value": "Python",
+        })(), "score": 1.0}
+        for index in range(6)
+    ]
+
+    result = MemoryContextBuilder().build(memories)
+
+    assert len(result.splitlines()) == 5
