@@ -13,6 +13,9 @@ def test_context_builder_rejects_invalid_max_memories():
     with pytest.raises(TypeError):
         MemoryContextBuilder(max_memories="5")
 
+    with pytest.raises(TypeError):
+        MemoryContextBuilder(max_memories=True)
+
     with pytest.raises(ValueError):
         MemoryContextBuilder(max_memories=-1)
 
