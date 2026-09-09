@@ -1,7 +1,7 @@
 class MemoryContextBuilder:
 
     def __init__(self, max_memories=5):
-        if not isinstance(max_memories, int):
+        if isinstance(max_memories, bool) or not isinstance(max_memories, int):
             raise TypeError("max_memories must be an integer")
         if max_memories < 0:
             raise ValueError("max_memories must be non-negative")
