@@ -28,6 +28,12 @@ def test_context_builder_zero_limit_returns_empty_context_message():
     assert result == "No relevant memories were found."
 
 
+def test_context_builder_empty_memory_list_returns_empty_context_message():
+    result = MemoryContextBuilder().build([])
+
+    assert result == "No relevant memories were found."
+
+
 def test_context_builder_caps_context_to_configured_limit():
     class First:
         subject = "Rahul"
