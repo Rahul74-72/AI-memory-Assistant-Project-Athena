@@ -1,10 +1,10 @@
 # Project Athena — AI Memory Assistant
 
-Project Athena is a prototype AI memory system that stores conversation history and structured long-term memories, then retrieves relevant memories from user queries.
+Project Athena is an AI memory system that stores conversation history and structured long-term memories, then retrieves relevant memories from user queries.
 
-## Current Version
+## Current status
 
-**v0.1 — Prototype**
+**Active development — retrieval and reasoning are integrated; extraction and memory management are still being expanded.**
 
 ### Current capabilities
 
@@ -14,20 +14,26 @@ Project Athena is a prototype AI memory system that stores conversation history 
 - Multi-value relationships (for example, `likes`)
 - Duplicate-memory detection
 - Rule-based memory extraction
-- Basic keyword-based memory retrieval
-- Embedding experiment using `sentence-transformers/all-MiniLM-L6-v2`
+- Embedding-based semantic retrieval
+- Semantic similarity ranking of retrieved memories
+- LLM-based reasoning over retrieved memory context
+- Automated regression tests for core retrieval, context, and chat behavior
 
 ## Project Structure
 
 ```text
 app/
 ├── chat/
+├── context/
 ├── database/
 ├── extractor/
+├── llm/
 ├── memory/
 ├── retrieval/
 └── utils/
 
+tests/
+docs/
 main.py
 requirements.txt
 ```
@@ -60,14 +66,16 @@ I am building an AI Memory Assistant
 ## Roadmap
 
 - [ ] Improve natural-language memory extraction
-- [ ] Integrate embeddings into retrieval
-- [ ] Add semantic similarity ranking
+- [x] Integrate embeddings into retrieval
+- [x] Add semantic similarity ranking
 - [ ] Add memory conflict resolution
 - [ ] Add memory deletion / forgetting
-- [ ] Add LLM-based reasoning
-- [ ] Add automated tests and evaluation
+- [x] Add LLM-based reasoning
+- [x] Add automated tests and evaluation
 - [ ] Add API / web interface
+
+See [`docs/ROADMAP_STATUS.md`](docs/ROADMAP_STATUS.md) for the implementation details and remaining work.
 
 ## Note
 
-This repository is an active learning project. The current version is a working prototype rather than a production-ready assistant.
+This repository is an active learning project. The current implementation is beyond the initial prototype, but it is not yet production-ready.
