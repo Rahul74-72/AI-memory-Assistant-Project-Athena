@@ -52,7 +52,7 @@ class MemoryRetriever:
 
     def search(self, question, limit=None):
         """Return active memories ranked by relevance, optionally capped."""
-        if limit is not None and not isinstance(limit, int):
+        if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int)):
             raise TypeError("limit must be an integer or None")
 
         if limit is not None and limit < 0:
