@@ -96,6 +96,14 @@ def test_search_rejects_non_integer_limit():
         retriever.search("Athena", limit="2")
 
 
+def test_search_rejects_boolean_limit():
+    retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.session = MagicMock()
+
+    with pytest.raises(TypeError, match="integer"):
+        retriever.search("Athena", limit=True)
+
+
 def test_search_with_zero_limit_skips_database_query():
     retriever = MemoryRetriever.__new__(MemoryRetriever)
     retriever.session = MagicMock()
