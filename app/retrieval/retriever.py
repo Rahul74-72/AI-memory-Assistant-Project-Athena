@@ -33,7 +33,7 @@ class MemoryRetriever:
 
         field_words = {
             name: set(re.findall(r"\b\w+\b", (text or "").lower()))
-            for name, (text, _) in fields.items()
+            for name, (_, _) in fields.items()
         }
 
         matched_score = 0
@@ -52,6 +52,9 @@ class MemoryRetriever:
 
     def search(self, question, limit=None):
         """Return active memories ranked by relevance, optionally capped."""
+        if not isinstance(question, str):
+            raise TypeError("question must be a string")
+
         if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int)):
             raise TypeError("limit must be an integer or None")
 
