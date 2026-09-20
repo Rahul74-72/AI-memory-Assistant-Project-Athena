@@ -118,3 +118,11 @@ def test_search_with_zero_limit_skips_database_query():
 
     assert retriever.search("Athena", limit=0) == []
     retriever.session.execute.assert_not_called()
+
+
+def test_search_with_no_meaningful_words_skips_database_query():
+    retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.session = MagicMock()
+
+    assert retriever.search("a an the") == []
+    retriever.session.execute.assert_not_called()
