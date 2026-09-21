@@ -15,9 +15,10 @@ class MemoryRetriever:
     @staticmethod
     def _search_words(question):
         """Return meaningful words without punctuation or short tokens."""
+        normalized = question.lower().replace("_", " ")
         return [
             word
-            for word in re.findall(r"\b\w+\b", question.lower())
+            for word in re.findall(r"\b\w+\b", normalized)
             if len(word) >= 4
         ]
 
@@ -32,7 +33,7 @@ class MemoryRetriever:
         }
 
         field_words = {
-            name: set(re.findall(r"\b\w+\b", (text or "").lower()))
+            name: set(re.findall(r"\b\w+\b", (text or "").lower().replace("_", " ")))
             for name, (_, _) in fields.items()
         }
 
