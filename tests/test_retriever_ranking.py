@@ -24,6 +24,13 @@ def test_search_words_normalizes_punctuation_and_short_tokens():
     ) == ["what", "rahul", "skill"]
 
 
+def test_search_words_normalizes_underscores_to_spaces():
+    assert MemoryRetriever._search_words("Where do I live_in?") == [
+        "where",
+        "live",
+    ]
+
+
 def test_score_memory_counts_unique_matching_words():
     memory = make_memory(value="machine learning project")
 
