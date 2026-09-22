@@ -133,3 +133,16 @@ def test_search_with_no_meaningful_words_skips_database_query():
 
     assert retriever.search("a an the") == []
     retriever.session.execute.assert_not_called()
+
+
+def test_search_uses_importance_to_break_relevance_ties():
+    retriever = MemoryRetriever.__new__(MemoryRetriever)
+    high = make_memory(subject="Athena", importance=9)
+    low = make_memory(subject="Athena", importance=2)
+
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = [low, high]
+    retriever.session = MagicMock()
+    retriever.session.execute.return_value = result
+
+    assert retriever.search("Athena") == [high, low]
