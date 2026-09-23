@@ -135,6 +135,14 @@ def test_search_with_no_meaningful_words_skips_database_query():
     retriever.session.execute.assert_not_called()
 
 
+def test_search_with_whitespace_only_question_skips_database_query():
+    retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.session = MagicMock()
+
+    assert retriever.search("   \t\n") == []
+    retriever.session.execute.assert_not_called()
+
+
 def test_search_uses_importance_to_break_relevance_ties():
     retriever = MemoryRetriever.__new__(MemoryRetriever)
     high = make_memory(subject="Athena", importance=9)
