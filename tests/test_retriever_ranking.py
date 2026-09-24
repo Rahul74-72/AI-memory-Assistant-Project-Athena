@@ -13,6 +13,7 @@ def make_memory(**overrides):
         "value": "machine learning",
         "category": "preference",
         "importance": 5,
+        "active": True,
     }
     values.update(overrides)
     return SimpleNamespace(**values)
@@ -154,3 +155,17 @@ def test_search_uses_importance_to_break_relevance_ties():
     retriever.session.execute.return_value = result
 
     assert retriever.search("Athena") == [high, low]
+
+
+def test_search_queries_only_active_memories():
+    retriever = MemoryRetriever.__new__(MemoryRetriever)
+    active = make_memory(subject="Athena", active=True)
+
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = [active]
+    retriever.session = MagicMock()
+    retriever.session.execute.return_value = result
+
+    assert retriever.search("Athena") == [active]
+    statement = retriever.session.execute.call_args.args[0]
+    assert "active" in str(statement)
