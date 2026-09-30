@@ -84,9 +84,14 @@ class Memory(Base):
         default=True
     )
 
+    lifecycle_state: Mapped[str] = mapped_column(
+        String,
+        default="active"
+    )
+
     embedding: Mapped[str | None] = mapped_column(
-    Text,
-    nullable=True
+        Text,
+        nullable=True
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -98,6 +103,16 @@ class Memory(Base):
         DateTime,
         default=datetime.utcnow,
         onupdate=datetime.utcnow
+    )
+
+    retrieval_count: Mapped[int] = mapped_column(
+        Integer,
+        default=0
+    )
+
+    last_retrieved_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True
     )
 
     def __repr__(self):
