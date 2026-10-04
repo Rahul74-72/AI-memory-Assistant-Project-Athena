@@ -1,126 +1,281 @@
+import re
+
+
 class MemoryExtractor:
+
+    def _result(
+        self,
+        relation,
+        value,
+        category,
+        importance
+    ):
+
+        value = value.strip()
+
+        if not value:
+            return None
+
+        return {
+            "save": True,
+            "subject": "User",
+            "relation": relation,
+            "value": value,
+            "category": category,
+            "importance": importance
+        }
+
+    def _match_value(
+        self,
+        text,
+        patterns
+    ):
+
+        for pattern in patterns:
+
+            match = re.match(
+                pattern,
+                text,
+                re.IGNORECASE
+            )
+
+            if not match:
+                continue
+
+            value = match.group(1).strip()
+
+            if value:
+                return value
+
+        return None
 
     def extract(self, message):
 
+        if not message:
+            return {
+                "save": False
+            }
+
         text = message.strip()
-        lower_text = text.lower()
 
-        # -----------------------------
+        if not text:
+            return {
+                "save": False
+            }
+
+        # Remove trailing whitespace but preserve the
+        # user's original value text.
+        text = re.sub(
+            r"\s+",
+            " ",
+            text
+        ).strip()
+
+        # =================================================
         # Location
-        # -----------------------------
+        # =================================================
 
-        if lower_text.startswith("i live in "):
+        value = self._match_value(
+            text,
+            [
 
-            value = text[len("I live in "):].strip()
+                r"^i\s+live\s+in\s+(.+?)\s*[.!?]?$",
 
-            if value:
+                r"^i\s+currently\s+live\s+in\s+(.+?)\s*[.!?]?$",
 
-                return {
-                    "save": True,
-                    "subject": "User",
-                    "relation": "lives_in",
-                    "value": value,
-                    "category": "PERSONAL",
-                    "importance": 8
-                }
+                r"^i\s+live\s+at\s+(.+?)\s*[.!?]?$",
 
-        # -----------------------------
+                r"^i\s+currently\s+live\s+at\s+(.+?)\s*[.!?]?$",
+
+                r"^i\s+am\s+living\s+in\s+(.+?)\s*[.!?]?$",
+
+                r"^i'm\s+living\s+in\s+(.+?)\s*[.!?]?$",
+
+                r"^i\s+currently\s+live\s+in\s+(.+?)\s*[.!?]?$",
+
+                r"^i\s+reside\s+in\s+(.+?)\s*[.!?]?$",
+
+                r"^i\s+currently\s+reside\s+in\s+(.+?)\s*[.!?]?$",
+
+                r"^i\s+am\s+based\s+in\s+(.+?)\s*[.!?]?$",
+
+                r"^i'm\s+based\s+in\s+(.+?)\s*[.!?]?$"
+
+            ]
+        )
+
+        if value:
+            return self._result(
+                relation="lives_in",
+                value=value,
+                category="PERSONAL",
+                importance=8
+            )
+
+        # =================================================
         # Likes
-        # -----------------------------
+        # =================================================
 
-        if lower_text.startswith("i like "):
+        value = self._match_value(
+            text,
+            [
 
-            value = text[len("I like "):].strip()
+                r"^i\s+like\s+(.+?)\s*[.!?]?$",
 
-            if value:
+                r"^i\s+really\s+like\s+(.+?)\s*[.!?]?$",
 
-                return {
-                    "save": True,
-                    "subject": "User",
-                    "relation": "likes",
-                    "value": value,
-                    "category": "PREFERENCE",
-                    "importance": 7
-                }
+                r"^i\s+enjoy\s+(.+?)\s*[.!?]?$",
 
-        # -----------------------------
+                r"^i\s+am\s+interested\s+in\s+(.+?)\s*[.!?]?$",
+
+                r"^i'm\s+interested\s+in\s+(.+?)\s*[.!?]?$",
+
+                r"^i\s+have\s+an\s+interest\s+in\s+(.+?)\s*[.!?]?$",
+
+                r"^i\s+am\s+a\s+fan\s+of\s+(.+?)\s*[.!?]?$",
+
+                r"^i'm\s+a\s+fan\s+of\s+(.+?)\s*[.!?]?$"
+
+            ]
+        )
+
+        if value:
+            return self._result(
+                relation="likes",
+                value=value,
+                category="PREFERENCE",
+                importance=7
+            )
+
+        # =================================================
         # Loves
-        # -----------------------------
+        # =================================================
 
-        if lower_text.startswith("i love "):
+        value = self._match_value(
+            text,
+            [
 
-            value = text[len("I love "):].strip()
+                r"^i\s+love\s+(.+?)\s*[.!?]?$",
 
-            if value:
+                r"^i\s+really\s+love\s+(.+?)\s*[.!?]?$",
 
-                return {
-                    "save": True,
-                    "subject": "User",
-                    "relation": "loves",
-                    "value": value,
-                    "category": "PREFERENCE",
-                    "importance": 7
-                }
+                r"^i\s+adore\s+(.+?)\s*[.!?]?$"
 
-        # -----------------------------
+            ]
+        )
+
+        if value:
+            return self._result(
+                relation="loves",
+                value=value,
+                category="PREFERENCE",
+                importance=7
+            )
+
+        # =================================================
         # Goals
-        # -----------------------------
+        # =================================================
 
-        if lower_text.startswith("i want to "):
+        value = self._match_value(
+            text,
+            [
 
-            value = text[len("I want to "):].strip()
+                r"^i\s+want\s+to\s+(.+?)\s*[.!?]?$",
 
-            if value:
+                r"^i\s+plan\s+to\s+(.+?)\s*[.!?]?$",
 
-                return {
-                    "save": True,
-                    "subject": "User",
-                    "relation": "goal",
-                    "value": value,
-                    "category": "GOAL",
-                    "importance": 10
-                }
+                r"^i\s+aim\s+to\s+(.+?)\s*[.!?]?$",
 
-        # -----------------------------
-        # Project
-        # -----------------------------
+                r"^i\s+hope\s+to\s+(.+?)\s*[.!?]?$",
 
-        if lower_text.startswith("i am building "):
+                r"^my\s+goal\s+is\s+to\s+(.+?)\s*[.!?]?$",
 
-            value = text[len("I am building "):].strip()
+                r"^my\s+goal\s+is\s+(.+?)\s*[.!?]?$"
 
-            if value:
+            ]
+        )
 
-                return {
-                    "save": True,
-                    "subject": "User",
-                    "relation": "building",
-                    "value": value,
-                    "category": "PROJECT",
-                    "importance": 9
-                }
-        # -----------------------------
+        if value:
+            return self._result(
+                relation="goal",
+                value=value,
+                category="GOAL",
+                importance=10
+            )
+
+        # =================================================
+        # Project / Building
+        # =================================================
+
+        value = self._match_value(
+            text,
+            [
+
+                r"^i\s+am\s+building\s+(.+?)\s*[.!?]?$",
+
+                r"^i'm\s+building\s+(.+?)\s*[.!?]?$",
+
+                r"^i\s+am\s+working\s+on\s+(.+?)\s*[.!?]?$",
+
+                r"^i'm\s+working\s+on\s+(.+?)\s*[.!?]?$",
+
+                r"^i\s+am\s+developing\s+(.+?)\s*[.!?]?$",
+
+                r"^i'm\s+developing\s+(.+?)\s*[.!?]?$"
+
+            ]
+        )
+
+        if value:
+            return self._result(
+                relation="building",
+                value=value,
+                category="PROJECT",
+                importance=9
+            )
+
+        # =================================================
         # Education / Studies
-        # -----------------------------
+        # =================================================
 
-        if lower_text.startswith("i study "):
+        value = self._match_value(
+            text,
+            [
 
-            value = text[len("I study "):].strip()
+                r"^i\s+study\s+(.+?)\s*[.!?]?$",
 
-            if value:
+                r"^i\s+am\s+studying\s+(.+?)\s*[.!?]?$",
 
-                return {
-                "save": True,
-                 "subject": "User",
-                 "relation": "studies",
-                 "value": value,
-                 "category": "EDUCATION",
-                 "importance": 9
-        }        
+                r"^i'm\s+studying\s+(.+?)\s*[.!?]?$",
 
-        # -----------------------------
+                r"^i\s+currently\s+study\s+(.+?)\s*[.!?]?$",
+
+                r"^i\s+am\s+currently\s+studying\s+(.+?)\s*[.!?]?$",
+
+                r"^i'm\s+currently\s+studying\s+(.+?)\s*[.!?]?$",
+
+                r"^i\s+am\s+learning\s+(.+?)\s*[.!?]?$",
+
+                r"^i'm\s+learning\s+(.+?)\s*[.!?]?$",
+
+                r"^i\s+am\s+currently\s+learning\s+(.+?)\s*[.!?]?$",
+
+                r"^i'm\s+currently\s+learning\s+(.+?)\s*[.!?]?$"
+
+            ]
+        )
+
+        if value:
+            return self._result(
+                relation="studies",
+                value=value,
+                category="EDUCATION",
+                importance=9
+            )
+
+        # =================================================
         # Nothing important
-        # -----------------------------
+        # =================================================
 
         return {
             "save": False

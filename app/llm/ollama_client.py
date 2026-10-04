@@ -18,7 +18,10 @@ class OllamaClient:
             json={
                 "model": self.model,
                 "prompt": prompt,
-                "stream": False
+                "stream": False,
+                "options": {
+                    "temperature": 0
+            }
             },
             timeout=120
         )
