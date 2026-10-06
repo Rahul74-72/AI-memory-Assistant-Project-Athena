@@ -157,6 +157,19 @@ def test_search_uses_importance_to_break_relevance_ties():
     assert retriever.search("Athena") == [high, low]
 
 
+def test_search_uses_memory_id_to_break_full_score_ties():
+    retriever = MemoryRetriever.__new__(MemoryRetriever)
+    newer = make_memory(subject="Athena", importance=5, id=20)
+    older = make_memory(subject="Athena", importance=5, id=10)
+
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = [newer, older]
+    retriever.session = MagicMock()
+    retriever.session.execute.return_value = result
+
+    assert retriever.search("Athena") == [older, newer]
+
+
 def test_search_queries_only_active_memories():
     retriever = MemoryRetriever.__new__(MemoryRetriever)
     active = make_memory(subject="Athena", active=True)
