@@ -86,7 +86,13 @@ class MemoryRetriever:
             if score[0] > 0:
                 results.append((score, memory))
 
-        results.sort(\n            key=lambda item: (\n                -item[0][0],\n                -item[0][1],\n                getattr(item[1], "id", 0),\n            )\n        )
+        results.sort(
+            key=lambda item: (
+                -item[0][0],
+                -item[0][1],
+                getattr(item[1], "id", 0),
+            )
+        )
 
         ranked_memories = [memory for _, memory in results]
         return ranked_memories[:limit] if limit is not None else ranked_memories
