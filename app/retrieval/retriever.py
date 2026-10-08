@@ -9,7 +9,6 @@ from app.database.models import Memory
 class MemoryRetriever:
 
     def __init__(self):
-
         self.session = SessionLocal()
 
     @staticmethod
@@ -33,11 +32,17 @@ class MemoryRetriever:
         }
 
         field_words = {
-            name: set(re.findall(r"\b\w+\b", (text or "").lower().replace("_", " ")))
-            for name, (_, _) in fields.items()
+            name: set(
+                re.findall(
+                    r"\b\w+\b",
+                    (text or "").lower().replace("_", " ")
+                )
+            )
+            for name, (text, _) in fields.items()
         }
 
         matched_score = 0
+
         for word in set(words):
             best_weight = max(
                 (
@@ -47,6 +52,7 @@ class MemoryRetriever:
                 ),
                 default=0,
             )
+
             matched_score += best_weight
 
         return matched_score, memory.importance or 0
@@ -56,7 +62,9 @@ class MemoryRetriever:
         if not isinstance(question, str):
             raise TypeError("question must be a string")
 
-        if limit is not None and (isinstance(limit, bool) or not isinstance(limit, int)):
+        if limit is not None and (
+            isinstance(limit, bool) or not isinstance(limit, int)
+        ):
             raise TypeError("limit must be an integer or None")
 
         if limit is not None and limit < 0:
@@ -80,17 +88,30 @@ class MemoryRetriever:
         )
 
         for memory in memories:
-
             score = self._score_memory(memory, words)
 
             if score[0] > 0:
                 results.append((score, memory))
 
-        results.sort(key=lambda item: item[0], reverse=True)
+        # Deterministic ranking:
+        # 1. Higher relevance score
+        # 2. Higher importance
+        # 3. Lower memory ID when both are tied
+        results.sort(
+            key=lambda item: (
+                -item[0][0],
+                -item[0][1],
+                getattr(item[1], "id", 0),
+            )
+        )
 
         ranked_memories = [memory for _, memory in results]
-        return ranked_memories[:limit] if limit is not None else ranked_memories
+
+        return (
+            ranked_memories[:limit]
+            if limit is not None
+            else ranked_memories
+        )
 
     def close(self):
-
         self.session.close()
