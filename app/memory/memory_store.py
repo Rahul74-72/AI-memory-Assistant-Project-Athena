@@ -38,46 +38,6 @@ class MemoryStore:
     # =====================================================
     # SAVE / UPDATE MEMORY
     # =====================================================
-from datetime import datetime
-
-from sqlalchemy import select
-
-from app.memory.importance_calibrator import ImportanceCalibrator
-from app.memory.memory_decay import MemoryDecay
-from app.memory.memory_reinforcement import MemoryReinforcement
-from app.memory.memory_lifecycle import MemoryLifecycle
-from app.memory.adaptive_prioritization import (
-    AdaptiveMemoryPrioritization
-)
-from app.embeddings.embedding_manager import EmbeddingManager
-from app.embeddings.memory_text import memory_to_text
-from app.database.database import SessionLocal
-from app.database.models import Memory
-
-
-class MemoryStore:
-
-    def __init__(self):
-
-        self.session = SessionLocal()
-
-        self.importance_calibrator = ImportanceCalibrator()
-
-        self.embedding_manager = EmbeddingManager()
-
-        self.memory_decay = MemoryDecay()
-
-        self.memory_reinforcement = MemoryReinforcement()
-
-        self.memory_lifecycle = MemoryLifecycle()
-
-        self.adaptive_prioritization = (
-            AdaptiveMemoryPrioritization()
-        )
-
-    # =====================================================
-    # SAVE / UPDATE MEMORY
-    # =====================================================
 
     def save_memory(
     self,
