@@ -1,4 +1,4 @@
-from datetime import datetime
+﻿from datetime import datetime
 
 from sqlalchemy import select
 
@@ -40,102 +40,182 @@ class MemoryStore:
     # =====================================================
 
     def save_memory(
-    self,
-    subject,
-    relation,
-    value,
-    category,
-    importance=5
-):
-
-     single_value_relations = {
-
-        "lives_in",
-
-        "current_job",
-
-        "age",
-
-        "born_in",
-
-        "current_city",
-
-        "current_country"
-    }
-
-    # Calibrate importance
-
-     importance = self.importance_calibrator.calibrate(
-        relation=relation,
-        value=value,
-        importance=importance
-    )
-
-    # Create natural-language memory representation
-
-     memory_text = memory_to_text(
+        self,
         subject,
         relation,
-        value
-    )
+        value,
+        category,
+        importance=5
+    ):
+        single_value_relations = {
+            "lives_in",
+            "current_job",
+            "age",
+            "born_in",
+            "current_city",
+            "current_country"
+        }
 
-    # Create embedding
+        # Calibrate importance
+        importance = self.importance_calibrator.calibrate(
+            relation=relation,
+            value=value,
+            importance=importance
+        )
 
-     embedding = self.embedding_manager.create_embedding(
-        memory_text
-    )
+        # Create natural-language memory representation
+        memory_text = memory_to_text(
+            subject,
+            relation,
+            value
+        )
 
-     embedding_json = self.embedding_manager.serialize(
-        embedding
-    )
+        # Create embedding
+        embedding = self.embedding_manager.create_embedding(
+            memory_text
+        )
+        embedding_json = self.embedding_manager.serialize(
+            embedding
+        )
 
-    # Find existing active memories for this subject/relation
+        # Find existing active memories for this subject/relation
+        stmt = select(Memory).where(
+            Memory.subject == subject,
+            Memory.relation == relation,
+            Memory.active.is_(True)
+        )
+        existing_memories = (
+            self.session.execute(stmt)
+            .scalars()
+            .all()
+        )
 
-     stmt = select(Memory).where(
-        Memory.subject == subject,
-        Memory.relation == relation,
-        Memory.active.is_(True)
-    )
+        normalized_value = value.strip().lower()
 
-     existing_memories = (
-        self.session.execute(stmt)
-        .scalars()
-        .all()
-    )
-
-     normalized_value = value.strip().lower()
-
-    # -------------------------------------------------
-    # Multi-value relation
-    # -------------------------------------------------
-
-     if relation not in single_value_relations:
-
-        for memory in existing_memories:
-
-            if (
-                memory.value.strip().lower()
-                == normalized_value
-            ):
-
-                if not memory.embedding:
-
-                    memory.embedding = embedding_json
-                    memory.updated_at = datetime.utcnow()
-
-                    self.session.commit()
+        # -------------------------------------------------
+        # Multi-value relation
+        # -------------------------------------------------
+        if relation not in single_value_relations:
+            for memory in existing_memories:
+                if memory.value.strip().lower() == normalized_value:
+                    if not memory.embedding:
+                        memory.embedding = embedding_json
+                        memory.updated_at = datetime.utcnow()
+                        self.session.commit()
+                        return {
+                            "action": "updated_embedding",
+                            "memory": memory
+                        }
 
                     return {
-                        "action": "updated_embedding",
+                        "action": "duplicate",
                         "memory": memory
                     }
 
-                return {
-                    "action": "duplicate",
-                    "memory": memory
-                }
+            memory = Memory(
+                subject=subject,
+                relation=relation,
+                value=value,
+                category=category,
+                importance=importance,
+                active=True,
+                lifecycle_state="active",
+                embedding=embedding_json
+            )
+            self.session.add(memory)
+            self.session.commit()
 
-        memory = Memory(
+            return {
+                "action": "created",
+                "memory": memory
+            }
+
+        # -------------------------------------------------
+        # Single-value relation
+        # -------------------------------------------------
+        matching_memories = [
+            memory
+            for memory in existing_memories
+            if memory.value.strip().lower() == normalized_value
+        ]
+
+        # -------------------------------------------------
+        # Same value already exists
+        # -------------------------------------------------
+        if matching_memories:
+            current_memory = max(
+                matching_memories,
+                key=lambda memory: memory.updated_at or datetime.min
+            )
+            archived_count = 0
+
+            # Archive other conflicting active values
+            for memory in existing_memories:
+                if memory.id == current_memory.id:
+                    continue
+
+                memory.active = False
+                memory.lifecycle_state = "archived"
+                memory.updated_at = datetime.utcnow()
+                archived_count += 1
+
+            # Refresh the existing matching memory
+            current_memory.category = category
+            current_memory.importance = importance
+            current_memory.embedding = embedding_json
+            current_memory.active = True
+            current_memory.lifecycle_state = "active"
+            current_memory.updated_at = datetime.utcnow()
+
+            self.session.commit()
+
+            return {
+                "action": "duplicate",
+                "memory": current_memory,
+                "archived_count": archived_count
+            }
+
+        # -------------------------------------------------
+        # New value: archive old versions and create a new row
+        # -------------------------------------------------
+        if existing_memories:
+            previous_memory = max(
+                existing_memories,
+                key=lambda memory: memory.updated_at or datetime.min
+            )
+            old_value = previous_memory.value
+            archived_count = 0
+
+            for memory in existing_memories:
+                memory.active = False
+                memory.lifecycle_state = "archived"
+                memory.updated_at = datetime.utcnow()
+                archived_count += 1
+
+            new_memory = Memory(
+                subject=subject,
+                relation=relation,
+                value=value,
+                category=category,
+                importance=importance,
+                active=True,
+                lifecycle_state="active",
+                embedding=embedding_json
+            )
+            self.session.add(new_memory)
+            self.session.commit()
+
+            return {
+                "action": "updated",
+                "memory": new_memory,
+                "old_value": old_value,
+                "archived_count": archived_count
+            }
+
+        # -------------------------------------------------
+        # Completely new memory - first value for this relation
+        # -------------------------------------------------
+        new_memory = Memory(
             subject=subject,
             relation=relation,
             value=value,
@@ -145,150 +225,14 @@ class MemoryStore:
             lifecycle_state="active",
             embedding=embedding_json
         )
-
-        self.session.add(memory)
-
+        self.session.add(new_memory)
         self.session.commit()
 
         return {
             "action": "created",
-            "memory": memory
+            "memory": new_memory
         }
 
-    # -------------------------------------------------
-    # Single-value relation
-    # -------------------------------------------------
-
-     matching_memories = [
-
-        memory
-
-        for memory in existing_memories
-
-        if (
-            memory.value.strip().lower()
-            == normalized_value
-        )
-    ]
-
-    # -------------------------------------------------
-    # Same value already exists
-    # -------------------------------------------------
-
-     if matching_memories:
-
-        current_memory = max(
-            matching_memories,
-            key=lambda memory:
-                memory.updated_at or datetime.min
-        )
-
-        archived_count = 0
-
-        # Archive every other active conflicting value
-
-        for memory in existing_memories:
-
-            if memory.id == current_memory.id:
-                continue
-
-            memory.active = False
-            memory.lifecycle_state = "archived"
-            memory.updated_at = datetime.utcnow()
-
-            archived_count += 1
-
-        # Refresh current memory
-
-        current_memory.category = category
-        current_memory.importance = importance
-        current_memory.embedding = embedding_json
-        current_memory.active = True
-        current_memory.lifecycle_state = "active"
-        current_memory.updated_at = datetime.utcnow()
-
-        self.session.commit()
-
-        return {
-            "action": "duplicate",
-            "memory": current_memory,
-            "archived_count": archived_count
-        }
-
-    # -------------------------------------------------
-    # New value replaces existing value
-    # -------------------------------------------------
-
-     if existing_memories:
-
-        # Use most recently updated active memory
-        # as the record that carries the new value.
-
-        current_memory = max(
-            existing_memories,
-            key=lambda memory:
-                memory.updated_at or datetime.min
-        )
-
-        old_value = current_memory.value
-
-        archived_count = 0
-
-        # Archive all other conflicting active memories
-
-        for memory in existing_memories:
-
-            if memory.id == current_memory.id:
-                continue
-
-            memory.active = False
-            memory.lifecycle_state = "archived"
-            memory.updated_at = datetime.utcnow()
-
-            archived_count += 1
-
-        # Replace the current value
-
-        current_memory.value = value
-        current_memory.category = category
-        current_memory.importance = importance
-        current_memory.embedding = embedding_json
-        current_memory.active = True
-        current_memory.lifecycle_state = "active"
-        current_memory.updated_at = datetime.utcnow()
-
-        self.session.commit()
-
-        return {
-            "action": "updated",
-            "memory": current_memory,
-            "old_value": old_value,
-            "archived_count": archived_count
-        }
-
-    # -------------------------------------------------
-    # Completely new memory
-    # -------------------------------------------------
-
-     memory = Memory(
-        subject=subject,
-        relation=relation,
-        value=value,
-        category=category,
-        importance=importance,
-        active=True,
-        lifecycle_state="active",
-        embedding=embedding_json
-    )
-
-     self.session.add(memory)
-
-     self.session.commit()
-
-     return {
-        "action": "created",
-        "memory": memory
-    }
     # =====================================================
     # INTELLIGENT SEMANTIC SEARCH
     # =====================================================
@@ -1459,7 +1403,6 @@ class MemoryStore:
             .scalars()
             .all()
         )
-
     # =====================================================
     # GET ALL MEMORIES
     # =====================================================
@@ -1475,6 +1418,41 @@ class MemoryStore:
             .order_by(
                 Memory.id
             )
+        )
+
+        return (
+            self.session.execute(stmt)
+            .scalars()
+            .all()
+        )
+
+    # =====================================================
+    # GET MEMORY HISTORY
+    # =====================================================
+
+    def get_memory_history(
+        self,
+        subject="User",
+        relation=None
+    ):
+        """
+        Return active and archived memory history.
+
+        History is read-only and does not affect retrieval.
+        """
+
+        stmt = select(Memory).where(
+            Memory.subject == subject
+        )
+
+        if relation is not None:
+            stmt = stmt.where(
+                Memory.relation == relation
+            )
+
+        stmt = stmt.order_by(
+            Memory.created_at.asc(),
+            Memory.id.asc()
         )
 
         return (
