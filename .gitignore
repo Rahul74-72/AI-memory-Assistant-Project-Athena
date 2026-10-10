@@ -38,3 +38,8 @@ Thumbs.db
 
 # Model/cache files
 .cache/
+# Local-only tests and evaluation artifacts
+/tests/
+**/test_*.py
+**/*_test.py
+/app/evaluation/

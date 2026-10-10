@@ -105,6 +105,16 @@ class Memory(Base):
         onupdate=datetime.utcnow
     )
 
+    valid_from: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True
+    )
+
+    valid_to: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True
+    )
+
     retrieval_count: Mapped[int] = mapped_column(
         Integer,
         default=0

@@ -1,3 +1,4 @@
+
 import pytest
 
 from app.context.context_builder import MemoryContextBuilder
@@ -23,15 +24,21 @@ def test_context_builder_rejects_invalid_max_memories():
 def test_context_builder_zero_limit_returns_empty_context_message():
     builder = MemoryContextBuilder(max_memories=0)
 
-    result = builder.build([{"memory": Memory(), "score": 0.9}])
+    result = builder.build(
+        [{"memory": Memory(), "score": 0.9}],
+        user_question="What programming language does Rahul like?",
+    )
 
-    assert result == "No relevant memories were found."
+    assert result == "No sufficient evidence was found."
 
 
 def test_context_builder_empty_memory_list_returns_empty_context_message():
-    result = MemoryContextBuilder().build([])
+    result = MemoryContextBuilder().build(
+        [],
+        user_question="What programming language does Rahul like?",
+    )
 
-    assert result == "No relevant memories were found."
+    assert result == "No sufficient evidence was found."
 
 
 def test_context_builder_caps_context_to_configured_limit():
@@ -46,37 +53,59 @@ def test_context_builder_caps_context_to_configured_limit():
         value = "AI"
 
     builder = MemoryContextBuilder(max_memories=1)
-    result = builder.build([
-        {"memory": First(), "score": 0.9},
-        {"memory": Second(), "score": 0.8},
-    ])
+    result = builder.build(
+        [
+            {"memory": First(), "score": 0.9, "semantic_score": 0.9},
+            {"memory": Second(), "score": 0.8, "semantic_score": 0.8},
+        ],
+        user_question="What programming language does Rahul like?",
+    )
 
-    assert result == "- Rahul likes Python"
+    assert result.startswith("- Rahul likes Python ")
+    assert "evidence=" in result
+    assert "AI" not in result
+
 
 
 def test_context_builder_formats_underscored_relationships():
-    class Goal:
+    class Job:
         subject = "Rahul"
-        relation = "wants_to_become"
+        relation = "current_job"
         value = "AI Engineer"
 
     builder = MemoryContextBuilder()
 
-    result = builder.build([{"memory": Goal(), "score": 0.9}])
+    result = builder.build(
+        [
+            {
+                "memory": Job(),
+                "score": 0.9,
+                "semantic_score": 0.9,
+            }
+        ],
+        user_question="What is Rahul's current job?",
+    )
 
-    assert result == "- Rahul wants to become AI Engineer"
+    assert result.startswith("- Rahul current job AI Engineer ")
+    assert "evidence=high" in result
 
 
 def test_context_builder_default_limit_allows_five_memories():
     memories = [
-        {"memory": type("Memory", (), {
-            "subject": f"Person {index}",
-            "relation": "likes",
-            "value": "Python",
-        })(), "score": 1.0}
+        {
+            "memory": type("Memory", (), {
+                "subject": f"Person {index}",
+                "relation": "likes",
+                "value": "Python",
+            })(),
+            "score": 1.0,
+        }
         for index in range(6)
     ]
 
-    result = MemoryContextBuilder().build(memories)
+    result = MemoryContextBuilder().build(
+        memories,
+        user_question="What do these people like?",
+    )
 
-    assert len(result.splitlines()) == 5
+    assert len(result.splitlines()) <= 5

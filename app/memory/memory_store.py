@@ -45,7 +45,8 @@ class MemoryStore:
         relation,
         value,
         category,
-        importance=5
+        importance=5,
+        valid_from=None
     ):
         single_value_relations = {
             "lives_in",
@@ -55,6 +56,25 @@ class MemoryStore:
             "current_city",
             "current_country"
         }
+
+        # Validate the supplied validity timestamp
+        if valid_from is not None:
+            if not isinstance(valid_from, datetime):
+                raise TypeError(
+                    "valid_from must be a datetime or None"
+                )
+
+            if valid_from.tzinfo is not None:
+                raise ValueError(
+                    "valid_from must be a timezone-naive UTC datetime"
+                )
+
+        recorded_at = datetime.utcnow()
+        fact_valid_from = (
+            valid_from
+            if valid_from is not None
+            else recorded_at
+        )
 
         # Calibrate importance
         importance = self.importance_calibrator.calibrate(
@@ -92,6 +112,30 @@ class MemoryStore:
 
         normalized_value = value.strip().lower()
 
+        # Reject a replacement that predates the current fact
+        if (
+            relation in single_value_relations
+            and existing_memories
+            and not any(
+                memory.value.strip().lower() == normalized_value
+                for memory in existing_memories
+            )
+        ):
+            existing_valid_from = [
+                memory.valid_from
+                for memory in existing_memories
+                if memory.valid_from is not None
+            ]
+
+            if existing_valid_from:
+                latest_valid_from = max(existing_valid_from)
+
+                if fact_valid_from < latest_valid_from:
+                    raise ValueError(
+                        "A replacement memory cannot start before "
+                        "the current fact's validity start"
+                    )
+
         # -------------------------------------------------
         # Multi-value relation
         # -------------------------------------------------
@@ -100,8 +144,9 @@ class MemoryStore:
                 if memory.value.strip().lower() == normalized_value:
                     if not memory.embedding:
                         memory.embedding = embedding_json
-                        memory.updated_at = datetime.utcnow()
+                        memory.updated_at = recorded_at
                         self.session.commit()
+
                         return {
                             "action": "updated_embedding",
                             "memory": memory
@@ -120,8 +165,11 @@ class MemoryStore:
                 importance=importance,
                 active=True,
                 lifecycle_state="active",
-                embedding=embedding_json
+                embedding=embedding_json,
+                valid_from=fact_valid_from,
+                valid_to=None
             )
+
             self.session.add(memory)
             self.session.commit()
 
@@ -145,27 +193,33 @@ class MemoryStore:
         if matching_memories:
             current_memory = max(
                 matching_memories,
-                key=lambda memory: memory.updated_at or datetime.min
+                key=lambda memory: (
+                    memory.updated_at or datetime.min
+                )
             )
             archived_count = 0
 
-            # Archive other conflicting active values
+            # Archive conflicting active values
             for memory in existing_memories:
                 if memory.id == current_memory.id:
                     continue
 
                 memory.active = False
                 memory.lifecycle_state = "archived"
-                memory.updated_at = datetime.utcnow()
+                memory.updated_at = recorded_at
+
+                if memory.valid_to is None:
+                    memory.valid_to = fact_valid_from
+
                 archived_count += 1
 
-            # Refresh the existing matching memory
+            # Refresh metadata without resetting validity dates
             current_memory.category = category
             current_memory.importance = importance
             current_memory.embedding = embedding_json
             current_memory.active = True
             current_memory.lifecycle_state = "active"
-            current_memory.updated_at = datetime.utcnow()
+            current_memory.updated_at = recorded_at
 
             self.session.commit()
 
@@ -181,7 +235,9 @@ class MemoryStore:
         if existing_memories:
             previous_memory = max(
                 existing_memories,
-                key=lambda memory: memory.updated_at or datetime.min
+                key=lambda memory: (
+                    memory.updated_at or datetime.min
+                )
             )
             old_value = previous_memory.value
             archived_count = 0
@@ -189,7 +245,11 @@ class MemoryStore:
             for memory in existing_memories:
                 memory.active = False
                 memory.lifecycle_state = "archived"
-                memory.updated_at = datetime.utcnow()
+                memory.updated_at = recorded_at
+
+                if memory.valid_to is None:
+                    memory.valid_to = fact_valid_from
+
                 archived_count += 1
 
             new_memory = Memory(
@@ -200,8 +260,11 @@ class MemoryStore:
                 importance=importance,
                 active=True,
                 lifecycle_state="active",
-                embedding=embedding_json
+                embedding=embedding_json,
+                valid_from=fact_valid_from,
+                valid_to=None
             )
+
             self.session.add(new_memory)
             self.session.commit()
 
@@ -213,7 +276,7 @@ class MemoryStore:
             }
 
         # -------------------------------------------------
-        # Completely new memory - first value for this relation
+        # First value for this relation
         # -------------------------------------------------
         new_memory = Memory(
             subject=subject,
@@ -223,8 +286,11 @@ class MemoryStore:
             importance=importance,
             active=True,
             lifecycle_state="active",
-            embedding=embedding_json
+            embedding=embedding_json,
+            valid_from=fact_valid_from,
+            valid_to=None
         )
+
         self.session.add(new_memory)
         self.session.commit()
 
@@ -232,6 +298,7 @@ class MemoryStore:
             "action": "created",
             "memory": new_memory
         }
+
 
     # =====================================================
     # INTELLIGENT SEMANTIC SEARCH
