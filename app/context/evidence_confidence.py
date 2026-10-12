@@ -39,8 +39,18 @@ class EvidenceConfidence:
             )
         )
 
-        if lifecycle_state == "archived":
+        is_historical = (
+            not getattr(memory, "active", True)
+            and lifecycle_state == "archived"
+            and getattr(memory, "archive_reason", None) == "replaced"
+            and getattr(memory, "valid_from", None) is not None
+            and getattr(memory, "valid_to", None) is not None
+        )
 
+        if lifecycle_state == "archived" and not is_historical:
+            return "insufficient"
+
+        if not getattr(memory, "active", True) and not is_historical:
             return "insufficient"
 
         conflict_penalty = result.get(
@@ -207,6 +217,68 @@ class EvidenceConfidence:
                 )
 
         return conflicting_relations
+
+    def find_conflicting_historical_relations(self, memories):
+        """Find historical single-value facts with overlapping validity."""
+        single_value_relations = {
+            "lives_in",
+            "current_job",
+            "age",
+            "born_in",
+            "current_city",
+            "current_country",
+        }
+
+        historical = []
+
+        for result in memories:
+            memory = result.get("memory")
+            if memory is None:
+                continue
+
+            valid_from = getattr(memory, "valid_from", None)
+            valid_to = getattr(memory, "valid_to", None)
+
+            is_historical = (
+                not getattr(memory, "active", True)
+                and getattr(memory, "archive_reason", None) == "replaced"
+                and getattr(memory, "lifecycle_state", None) == "archived"
+                and valid_from is not None
+                and valid_to is not None
+            )
+
+            relation = (getattr(memory, "relation", None) or "").lower()
+
+            if is_historical and relation in single_value_relations:
+                historical.append(memory)
+
+        conflicting = set()
+
+        for index, first in enumerate(historical):
+            for second in historical[index + 1:]:
+                if first.subject != second.subject:
+                    continue
+
+                if (first.relation or "").lower() != (second.relation or "").lower():
+                    continue
+
+                if (first.value or "").strip().lower() == (second.value or "").strip().lower():
+                    continue
+
+                # Validity intervals are start-inclusive and end-exclusive.
+                overlaps = (
+                    first.valid_from < second.valid_to
+                    and second.valid_from < first.valid_to
+                )
+
+                if overlaps:
+                    conflicting.add((
+                        first.subject,
+                        (first.relation or "").lower(),
+                    ))
+
+        return conflicting
+
     def is_usable(
         self,
         confidence

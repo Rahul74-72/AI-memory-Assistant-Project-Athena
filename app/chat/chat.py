@@ -236,6 +236,68 @@ class ChatEngine:
             )
         )
 
+    def extract_historical_date(self, text):
+        """
+        Extract an explicit historical date.
+        Returns (start, end) for a year, or (date, date)
+        for a specific ISO date. None means no match.
+        """
+        from datetime import datetime
+
+        text_lower = (text or "").lower()
+
+        historical_phrases = (
+            "did i live",
+            "did i work",
+            "was i living",
+            "was i working",
+            "in the past",
+            "back in",
+            "previously",
+            "used to",
+            "at that time",
+            "what was my",
+            "where was i",
+            "where did i",
+        )
+
+        if not any(
+            phrase in text_lower
+            for phrase in historical_phrases
+        ):
+            return None
+
+        # Check a complete ISO date before checking a year.
+        date_match = re.search(
+            r"\b(\d{4})-(\d{2})-(\d{2})\b",
+            text_lower
+        )
+
+        if date_match:
+            try:
+                date_value = datetime(
+                    int(date_match.group(1)),
+                    int(date_match.group(2)),
+                    int(date_match.group(3))
+                )
+                from datetime import timedelta
+                return (date_value, date_value + timedelta(days=1))
+            except ValueError:
+                return None
+
+        year_match = re.search(
+            r"\b(19\d{2}|20\d{2})\b",
+            text_lower
+        )
+
+        if year_match:
+            year = int(year_match.group(1))
+            start = datetime(year, 1, 1)
+            end = datetime(year + 1, 1, 1)
+            return (start, end)
+
+        return None
+
     def generate_response(self, user_message):
 
         recent_messages = self.memory.get_recent_messages(
@@ -256,28 +318,112 @@ class ChatEngine:
             conversation_lines
         )
 
-        if self.is_memory_question(
-            user_message
-        ):
-
-            results = self.memory_store.semantic_search(
-                user_message,
-                top_k=3,
-                threshold=0.20
+        if (
+            self.is_memory_question(user_message)
+            or self.extract_historical_date(user_message) is not None
+            ):
+            historical_date = self.extract_historical_date(
+                user_message
             )
+
+            if historical_date is not None:
+                start, end = historical_date
+                question_lower = user_message.lower()
+                question_words = set(
+                    re.findall(r"\b\w+\b", question_lower)
+                )
+
+                relation_keywords = {
+                    "lives_in": {
+                        "live", "lives", "living", "lived",
+                        "reside", "resides", "resided",
+                        "residence", "city", "location",
+                    },
+                    "studies": {
+                        "study", "studies", "studying",
+                        "studied", "education", "subject",
+                    },
+                    "likes": {
+                        "like", "likes", "liked",
+                        "favorite", "favourite", "enjoy",
+                    },
+                    "current_job": {
+                        "job", "work", "working", "worked",
+                        "profession", "occupation",
+                    },
+                    "goal": {
+                        "goal", "goals", "aim", "aims",
+                    },
+                    "skills": {
+                        "skill", "skills",
+                    },
+                }
+
+                detected_relations = [
+                    relation
+                    for relation, keywords in relation_keywords.items()
+                    if question_words & keywords
+                ]
+
+                historical_relation = (
+                    detected_relations[0]
+                    if len(detected_relations) == 1
+                    else None
+                )
+
+                results = (
+                    self.memory_store.search_historical_memories(
+                        user_message,
+                        start,
+                        end,
+                        subject="User",
+                        relation=historical_relation,
+                        top_k=3,
+                        threshold=0.20,
+                    )
+                )
+
+            elif any(
+                phrase in (user_message or "").lower()
+                for phrase in (
+                    "did i live",
+                    "did i work",
+                    "was i living",
+                    "was i working",
+                    "in the past",
+                    "back in",
+                    "previously",
+                    "used to",
+                    "at that time",
+                    "what was my",
+                    "where was i",
+                    "where did i",
+                )
+            ):
+                # Do not use current memories as historical evidence
+                # when the question has no supported date.
+                results = []
+
+            else:
+                results = self.memory_store.semantic_search(
+                    user_message,
+                    top_k=3,
+                    threshold=0.20
+                )
 
             context = self.context_builder.build(
                 results,
-                user_message
+                user_message,
             )
 
             response = self.reasoner.answer(
                 user_question=user_message,
                 memory_context=context,
-                conversation_context=conversation_context
+                conversation_context=conversation_context,
             )
 
             return response
+
 
         if self.is_general_question(
             user_message
@@ -493,12 +639,29 @@ class ChatEngine:
                 continue
 
             if user.lower() == "exit":
+                print("\nGoodbye!")
+                break
 
-                print(
-                    "\nGoodbye!"
+            forget_response = self.handle_forget_request(user)
+
+            if forget_response is not None:
+
+                self.memory.save_message(
+                    "User",
+                    user
                 )
 
-                break
+                self.memory.save_message(
+                    "AI",
+                    forget_response
+                )
+
+                print(
+                    "\nAI :",
+                    forget_response
+                )
+
+                continue
 
             self.memory.save_message(
                 "User",

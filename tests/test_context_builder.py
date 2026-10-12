@@ -109,3 +109,72 @@ def test_context_builder_default_limit_allows_five_memories():
     )
 
     assert len(result.splitlines()) <= 5
+
+from datetime import datetime
+
+
+def test_context_builder_formats_replaced_memory_as_historical():
+    class HistoricalMemory:
+        subject = "Rahul"
+        relation = "lives_in"
+        value = "Jaipur"
+        active = False
+        lifecycle_state = "archived"
+        archive_reason = "replaced"
+        valid_from = datetime(2023, 1, 1)
+        valid_to = datetime(2025, 1, 1)
+
+    result = MemoryContextBuilder().build(
+        [{
+            "memory": HistoricalMemory(),
+            "semantic_score": 0.9,
+            "lifecycle_state": "archived",
+        }],
+        user_question="Where did Rahul live?",
+    )
+
+    assert "type=historical" in result
+    assert "valid_from=2023-01-01T00:00:00" in result
+    assert "valid_to=2025-01-01T00:00:00" in result
+
+def test_context_builder_marks_overlapping_historical_conflicts():
+    class HistoricalMemory:
+        def __init__(self, value, valid_from, valid_to):
+            self.subject = "Rahul"
+            self.relation = "lives_in"
+            self.value = value
+            self.active = False
+            self.lifecycle_state = "archived"
+            self.archive_reason = "replaced"
+            self.valid_from = valid_from
+            self.valid_to = valid_to
+
+    memories = [
+        {
+            "memory": HistoricalMemory(
+                "Jaipur",
+                datetime(2023, 1, 1),
+                datetime(2025, 1, 1),
+            ),
+            "semantic_score": 0.9,
+            "lifecycle_state": "archived",
+        },
+        {
+            "memory": HistoricalMemory(
+                "Medchal",
+                datetime(2024, 1, 1),
+                datetime(2026, 1, 1),
+            ),
+            "semantic_score": 0.9,
+            "lifecycle_state": "archived",
+        },
+    ]
+
+    result = MemoryContextBuilder().build(
+        memories,
+        user_question="Where did Rahul live in 2024?",
+    )
+
+    assert "Jaipur" in result
+    assert "Medchal" in result
+    assert result.count("evidence=conflicting") == 2

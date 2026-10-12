@@ -39,6 +39,11 @@ def migrate_temporal_memory(database_path=None):
                 "ALTER TABLE memories ADD COLUMN valid_to DATETIME"
             )
 
+        if "archive_reason" not in columns:
+            connection.execute(
+                "ALTER TABLE memories ADD COLUMN archive_reason VARCHAR(30)"
+            )
+
         connection.execute("""
             UPDATE memories
             SET valid_from = created_at

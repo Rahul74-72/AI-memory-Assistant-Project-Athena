@@ -88,6 +88,11 @@ class Memory(Base):
         String,
         default="active"
     )
+    archive_reason: Mapped[str | None] = mapped_column(
+        String(30),
+        nullable=True,
+        default=None
+    )
 
     embedding: Mapped[str | None] = mapped_column(
         Text,
