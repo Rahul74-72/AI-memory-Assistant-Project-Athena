@@ -620,8 +620,44 @@ class ChatEngine:
 
      return None
 
-    def chat(self):
+    def process_message(self, user_message):
+        """Process one message for both the CLI and API."""
+        user = (user_message or "").strip()
 
+        if not user:
+            raise ValueError("Message cannot be empty.")
+
+        forget_response = self.handle_forget_request(user)
+
+        self.memory.save_message("User", user)
+
+        if forget_response is not None:
+            response = forget_response
+            memory_action = None
+        else:
+            memory_data = self.extractor.extract(user)
+            memory_action = None
+
+            if memory_data["save"]:
+                result = self.memory_store.save_memory(
+                    subject=memory_data["subject"],
+                    relation=memory_data["relation"],
+                    value=memory_data["value"],
+                    category=memory_data["category"],
+                    importance=memory_data["importance"],
+                )
+                memory_action = result["action"]
+
+            response = self.generate_response(user)
+
+        self.memory.save_message("AI", response)
+
+        return {
+            "response": response,
+            "memory_action": memory_action,
+        }
+
+    def chat(self):
         print("=" * 50)
         print("       PROJECT ATHENA")
         print("       AI MEMORY ASSISTANT")
@@ -629,100 +665,31 @@ class ChatEngine:
         print("Type 'exit' to quit.")
         print()
 
-        while True:
+        try:
+            while True:
+                user = input("You : ").strip()
 
-            user = input(
-                "You : "
-            ).strip()
+                if not user:
+                    continue
 
-            if not user:
-                continue
+                if user.lower() == "exit":
+                    print("\nGoodbye!")
+                    break
 
-            if user.lower() == "exit":
-                print("\nGoodbye!")
-                break
+                result = self.process_message(user)
+                print("\nAI :", result["response"])
 
-            forget_response = self.handle_forget_request(user)
+                action_messages = {
+                    "created": "[Memory saved]",
+                    "duplicate": "[Duplicate memory ignored]",
+                    "updated": "[Memory updated]",
+                    "updated_embedding": "[Memory embedding repaired]",
+                }
 
-            if forget_response is not None:
+                status = action_messages.get(result["memory_action"])
+                if status:
+                    print("   " + status)
 
-                self.memory.save_message(
-                    "User",
-                    user
-                )
-
-                self.memory.save_message(
-                    "AI",
-                    forget_response
-                )
-
-                print(
-                    "\nAI :",
-                    forget_response
-                )
-
-                continue
-
-            self.memory.save_message(
-                "User",
-                user
-            )
-
-            memory_data = self.extractor.extract(
-                user
-            )
-
-            memory_action = None
-
-            if memory_data["save"]:
-
-                result = self.memory_store.save_memory(
-                    subject=memory_data["subject"],
-                    relation=memory_data["relation"],
-                    value=memory_data["value"],
-                    category=memory_data["category"],
-                    importance=memory_data["importance"]
-                )
-
-                memory_action = result["action"]
-
-            response = self.generate_response(
-                user
-            )
-
-            self.memory.save_message(
-                "AI",
-                response
-            )
-
-            print(
-                "\nAI :",
-                response
-            )
-
-            if memory_action == "created":
-
-                print(
-                    "   [Memory saved]"
-                )
-
-            elif memory_action == "duplicate":
-
-                print(
-                    "   [Duplicate memory ignored]"
-                )
-
-            elif memory_action == "updated":
-
-                print(
-                    "   [Memory updated]"
-                )
-
-            elif memory_action == "updated_embedding":
-
-                print(
-                    "   [Memory embedding repaired]"
-                )
-
-        self.memory.close()
-        self.memory_store.close()
+        finally:
+            self.memory.close()
+            self.memory_store.close()
