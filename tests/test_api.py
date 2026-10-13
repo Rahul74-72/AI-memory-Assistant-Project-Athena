@@ -81,3 +81,18 @@ def test_chat_hides_internal_error(monkeypatch):
         "Athena could not process the message."
     )
     assert "Sensitive internal details" not in response.text
+
+
+def test_lifespan_closes_assistant(monkeypatch):
+    close_called = []
+
+    def fake_close():
+        close_called.append(True)
+
+    monkeypatch.setattr(api_module.assistant, "close", fake_close)
+
+    with TestClient(api_module.app) as lifecycle_client:
+        response = lifecycle_client.get("/health")
+        assert response.status_code == 200
+
+    assert close_called == [True]

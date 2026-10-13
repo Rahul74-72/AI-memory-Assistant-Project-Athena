@@ -691,5 +691,9 @@ class ChatEngine:
                     print("   " + status)
 
         finally:
-            self.memory.close()
-            self.memory_store.close()
+            self.close()
+
+    def close(self):
+        """Close resources owned by the chat engine."""
+        self.memory.close()
+        self.memory_store.close()

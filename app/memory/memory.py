@@ -24,7 +24,7 @@ class MemoryManager:
         )
 
         self.session.add(conversation)
-        self.session.commit()
+        self._commit()
 
         return conversation
 
@@ -70,7 +70,15 @@ class MemoryManager:
         """
 
         self.session.query(Conversation).delete()
-        self.session.commit()
+        self._commit()
+
+    def _commit(self):
+        """Commit changes and recover the session if the commit fails."""
+        try:
+            self.session.commit()
+        except Exception:
+            self.session.rollback()
+            raise
 
     def close(self):
         """

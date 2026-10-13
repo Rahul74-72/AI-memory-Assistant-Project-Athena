@@ -145,7 +145,7 @@ class MemoryStore:
                     if not memory.embedding:
                         memory.embedding = embedding_json
                         memory.updated_at = recorded_at
-                        self.session.commit()
+                        self._commit()
 
                         return {
                             "action": "updated_embedding",
@@ -172,7 +172,7 @@ class MemoryStore:
             )
 
             self.session.add(memory)
-            self.session.commit()
+            self._commit()
 
             return {
                 "action": "created",
@@ -223,7 +223,7 @@ class MemoryStore:
             current_memory.lifecycle_state = "active"
             current_memory.updated_at = recorded_at
 
-            self.session.commit()
+            self._commit()
 
             return {
                 "action": "duplicate",
@@ -270,7 +270,7 @@ class MemoryStore:
             )
 
             self.session.add(new_memory)
-            self.session.commit()
+            self._commit()
 
             return {
                 "action": "updated",
@@ -297,7 +297,7 @@ class MemoryStore:
         )
 
         self.session.add(new_memory)
-        self.session.commit()
+        self._commit()
 
         return {
             "action": "created",
@@ -378,7 +378,7 @@ class MemoryStore:
         forgotten.append(memory)
 
      if forgotten:
-        self.session.commit()
+        self._commit()
 
      return forgotten
 
@@ -407,7 +407,7 @@ class MemoryStore:
             memory.updated_at = datetime.utcnow()
 
         if memories:
-            self.session.commit()
+            self._commit()
 
         return memories
     # =====================================================
@@ -873,7 +873,7 @@ class MemoryStore:
 
         if lifecycle_changed:
 
-            self.session.commit()
+            self._commit()
 
         # -----------------------------------------
         # Sort by final score
@@ -905,7 +905,7 @@ class MemoryStore:
 
         if final_results:
 
-            self.session.commit()
+            self._commit()
 
         return final_results
 
@@ -1227,6 +1227,14 @@ class MemoryStore:
         )
 
         return results[:top_k]
+
+    def _commit(self):
+        """Commit changes and recover the session if the commit fails."""
+        try:
+            self.session.commit()
+        except Exception:
+            self.session.rollback()
+            raise
 
     # =====================================================
     # CLOSE

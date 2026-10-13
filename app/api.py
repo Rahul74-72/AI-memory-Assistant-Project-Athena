@@ -1,4 +1,5 @@
 
+from contextlib import asynccontextmanager
 from threading import Lock
 
 from fastapi import FastAPI, HTTPException
@@ -7,16 +8,26 @@ from pydantic import BaseModel, Field
 from app.chat.chat import ChatEngine
 
 
+# Reuse the engine and serialize requests because the engine owns
+# database sessions that are not request-scoped.
+assistant = ChatEngine()
+assistant_lock = Lock()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        yield
+    finally:
+        assistant.close()
+
+
 app = FastAPI(
     title="Project Athena API",
     description="API for Athena's long-term AI memory assistant.",
     version="1.0.0",
+    lifespan=lifespan,
 )
-
-# Reuse the engine and its loaded components. Serialize requests because
-# the current engine owns database sessions that are not request-scoped.
-assistant = ChatEngine()
-assistant_lock = Lock()
 
 
 class ChatRequest(BaseModel):
