@@ -1,0 +1,17 @@
+{
+  "name": "Project Athena — Private AI Memory",
+  "short_name": "Athena",
+  "description": "A private, local-first AI memory workspace for chat, voice, pictures, coding, and learning.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f5ef",
+  "theme_color": "#256d52",
+  "orientation": "any",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {"src": "/static/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable"},
+    {"src": "/static/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}

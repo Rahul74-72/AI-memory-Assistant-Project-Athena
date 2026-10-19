@@ -19,6 +19,7 @@ from app.security import RequestSecurity
 from app.database.models import TrainingExample
 from app.learning import contains_secret
 from app.llm.ollama_client import ModelUnavailable
+from app.settings import CREATOR_NAME, PUBLIC_CLEARANCE_LEVELS
 from sqlalchemy.orm import Session
 
 
@@ -56,6 +57,20 @@ def home():
     return FileResponse(STATIC / "index.html")
 
 
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def web_manifest():
+    return FileResponse(STATIC / "manifest.webmanifest", media_type="application/manifest+json")
+
+
+@app.get("/service-worker.js", include_in_schema=False)
+def service_worker():
+    return FileResponse(
+        STATIC / "service-worker.js",
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/"},
+    )
+
+
 @app.exception_handler(ModelUnavailable)
 async def model_unavailable(request, exc):
     return JSONResponse({"detail": str(exc)}, status_code=503)
@@ -77,6 +92,16 @@ class ChatResponse(BaseModel):
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "Project Athena API"}
+
+
+@app.get("/about")
+def about():
+    return {
+        "name": "Project Athena",
+        "creator": CREATOR_NAME,
+        "maximum_clearance": PUBLIC_CLEARANCE_LEVELS[-1],
+        "clearance_levels": PUBLIC_CLEARANCE_LEVELS,
+    }
 
 
 @app.post("/chat", response_model=ChatResponse)

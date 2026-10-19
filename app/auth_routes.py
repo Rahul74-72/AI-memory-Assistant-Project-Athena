@@ -18,6 +18,7 @@ from app.auth import (
 from app.database.database import get_db
 from app.database.models import User, UserSecurity
 from app.security import cipher, verify_totp
+from app.settings import clearance_for_username
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -125,6 +126,7 @@ def me(current_user: User = Depends(get_current_user), db: Session = Depends(get
     return {
         "id": current_user.id,
         "username": current_user.username,
+        "clearance": clearance_for_username(current_user.username),
         "mfa_enabled": bool(state and state.totp_enabled),
         "auto_collect": bool(state and state.auto_collect),
     }

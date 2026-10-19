@@ -2,6 +2,7 @@
 const $ = id => document.getElementById(id);
 let token = '', profile = null, recorder = null, recordingTimer = null;
 let lastCodeQuestion = '', lastCodeAnswer = '', photoURLs = [];
+let installPrompt = null;
 function notice(text, error=false) { $('notice').textContent=text; $('notice').className=error?'error':''; }
 async function api(path, options={}) {
   const headers = {...options.headers};
@@ -18,7 +19,7 @@ async function api(path, options={}) {
 async function json(path, options) {return (await api(path,options)).json();}
 function run(handler) {return async event => {event?.preventDefault(); const button=event?.submitter||((event?.currentTarget?.tagName==='BUTTON')?event.currentTarget:null); if(button)button.disabled=true; try{notice('Working…'); await handler(event); if($('notice').textContent==='Working…')notice('Done.');}catch(e){notice(e.message,true);}finally{if(button)button.disabled=false;}};}
 function signedOut() {token='';profile=null;stopRecording();window.speechSynthesis?.cancel();$('auth').hidden=false;$('workspace').hidden=true;$('logout').hidden=true;$('identity').textContent='Not signed in';['messages','memory-list','image-list','lesson-list','code-list','code-answer','photo-answer','mfa-secret'].forEach(id=>$(id).replaceChildren());photoURLs.forEach(URL.revokeObjectURL);photoURLs=[];lastCodeAnswer='';lastCodeQuestion='';document.querySelectorAll('textarea').forEach(t=>t.value='');}
-async function signedIn(data) {token=data.access_token;profile=await json('/auth/me');$('auth').hidden=true;$('workspace').hidden=false;$('logout').hidden=false;$('identity').textContent=profile.username;$('password').value='';$('otp').value='';$('auto-collect').checked=profile.auto_collect;$('mfa-status').textContent=profile.mfa_enabled?'MFA is enabled.':'MFA is not enabled yet.';const messages=await json('/conversations');$('messages').replaceChildren();messages.forEach(m=>bubble(m.speaker,m.message));notice('Welcome, '+profile.username+'.');}
+async function signedIn(data) {token=data.access_token;profile=await json('/auth/me');$('auth').hidden=true;$('workspace').hidden=false;$('logout').hidden=false;$('identity').textContent=profile.username+' · '+profile.clearance;$('clearance-badge').textContent=profile.clearance;$('password').value='';$('otp').value='';$('auto-collect').checked=profile.auto_collect;$('mfa-status').textContent=profile.mfa_enabled?'MFA is enabled.':'MFA is not enabled yet.';const messages=await json('/conversations');$('messages').replaceChildren();messages.forEach(m=>bubble(m.speaker,m.message));notice('Welcome, '+profile.username+'.');}
 function credentials(){return {username:$('username').value,password:$('password').value,otp:$('otp').value||null};}
 $('auth-form').addEventListener('submit',run(async()=>signedIn(await json('/auth/login',{method:'POST',body:credentials()}))));
 $('register').addEventListener('click',run(async()=>{if(!$('auth-form').reportValidity())return;await signedIn(await json('/auth/register',{method:'POST',body:credentials()}));}));
@@ -59,3 +60,12 @@ $('mfa-setup').addEventListener('click',run(async()=>{const data=await json('/au
 $('mfa-form').addEventListener('submit',run(async()=>{const data=await json('/auth/mfa/confirm',{method:'POST',body:{password:$('mfa-password').value,otp:$('mfa-code').value}});token=data.access_token;$('mfa-secret').textContent='';$('mfa-form').reset();$('mfa-status').textContent='MFA is enabled.';}));
 async function switchTab(name){if(!token){notice('Sign in first.');return;}document.querySelectorAll('.tab').forEach(t=>t.hidden=t.id!=='tab-'+name);document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));if(name==='memories')await loadMemories();if(name==='photos')await loadPhotos();if(name==='code')await loadCode();if(name==='learning')await loadLessons();}
 document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',run(()=>switchTab(b.dataset.tab))));
+
+function updateConnection(){const online=navigator.onLine;$('connection').textContent=online?'Online':'Offline';$('connection').classList.toggle('offline',!online);if(!online)notice('Athena is offline. Reconnect to use your private workspace.',true);}
+window.addEventListener('online',updateConnection);
+window.addEventListener('offline',updateConnection);
+updateConnection();
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;$('install-app').hidden=false;});
+$('install-app').addEventListener('click',async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('install-app').hidden=true;});
+window.addEventListener('appinstalled',()=>{installPrompt=null;$('install-app').hidden=true;notice('Athena is installed.');});
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>notice('App installation is unavailable in this browser.',true)));}

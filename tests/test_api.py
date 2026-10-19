@@ -32,6 +32,49 @@ def test_health_endpoint():
     }
 
 
+def test_system_identity_and_clearance_ladder():
+    response = client.get("/about")
+    assert response.status_code == 200
+    assert response.json() == {
+        "name": "Project Athena",
+        "creator": "Voyanix",
+        "maximum_clearance": "SSS",
+        "clearance_levels": ["D", "C", "B", "A", "S", "SS", "SSS"],
+    }
+    assert "EX" not in response.text
+
+
+def test_ex_clearance_is_owner_only(monkeypatch):
+    from app import settings
+
+    monkeypatch.setattr(settings, "OWNER_USERNAME", "private_owner")
+    assert settings.clearance_for_username("private_owner") == "EX"
+    assert settings.clearance_for_username("PRIVATE_OWNER") == "EX"
+    assert settings.clearance_for_username("another_user") == "SSS"
+
+
+def test_installable_app_assets_are_available():
+    manifest = client.get("/manifest.webmanifest")
+    assert manifest.status_code == 200
+    assert manifest.headers["content-type"].startswith("application/manifest+json")
+    assert manifest.json()["display"] == "standalone"
+    assert manifest.json()["start_url"] == "/"
+
+    worker = client.get("/service-worker.js")
+    assert worker.status_code == 200
+    assert worker.headers["service-worker-allowed"] == "/"
+    assert "/chat" not in worker.text
+
+
+def test_app_shell_links_manifest_and_avoids_token_persistence():
+    home = client.get("/")
+    script = client.get("/static/app.js")
+    assert home.status_code == 200
+    assert 'rel="manifest" href="/manifest.webmanifest"' in home.text
+    assert "serviceWorker.register('/service-worker.js')" in script.text
+    assert "localStorage" not in script.text
+
+
 def test_chat_requires_authentication():
     response = client.post(
         "/chat",

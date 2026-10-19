@@ -15,6 +15,31 @@ Open this folder in VS Code. After the one-time setup below, double-click
 `Start-Athena.cmd`, or run `.\.venv\Scripts\python.exe main.py`.
 Open **http://127.0.0.1:8000** and create your own account. There is no default password.
 The launcher creates a random signing secret in the local `.env` on first use.
+The private owner account defaults to username `voyanix`; change `ATHENA_OWNER_USERNAME`
+in `.env` before creating accounts if you use a different owner username. Only that exact
+server-configured account receives the private owner clearance. Other accounts are capped at SSS.
+
+### Install as an app
+
+Athena is an installable Progressive Web App (PWA), so the same reviewed interface works as
+a desktop app and a mobile app without duplicating the private-memory logic.
+
+If the browser does not show its install option on Windows, double-click
+`Install-Athena-App.cmd`. It creates a **Project Athena** Desktop shortcut that starts the
+local server and opens Athena in a dedicated Edge/Chrome app window without requiring PWA installation.
+
+- **Windows:** start Athena, open it in Edge or Chrome, then select **Install app** in Athena
+  (or use the browser's install icon). It opens in its own window and can be pinned to Start.
+- **Android:** open the HTTPS address of your Athena server in Chrome and select
+  **Install app** or **Add to Home screen**.
+- **iPhone/iPad:** open the HTTPS address in Safari, tap **Share**, then **Add to Home Screen**.
+
+The app shell can open while offline, but chat, memory, voice transcription, pictures, and
+training require a connection to the Athena backend. Personal/API responses are never placed
+in the service-worker cache, and login tokens remain in memory rather than browser storage.
+Phones cannot use the PC-only `127.0.0.1` address; mobile access requires an HTTPS deployment
+or a trusted HTTPS connection to the PC. Follow [server deployment](docs/DEPLOYMENT.md) before
+exposing Athena outside the computer.
 
 One-time setup (Python 3.10+ and Ollama must be installed):
 
