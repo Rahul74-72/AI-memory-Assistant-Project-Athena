@@ -1,24 +1,31 @@
 import json
+import os
 
 import numpy as np
 
-from sentence_transformers import SentenceTransformer
+from functools import lru_cache
+
+
+@lru_cache(maxsize=1)
+def _model():
+    # Keep heavy imports and model loading out of API/test startup.
+    from sentence_transformers import SentenceTransformer
+    return SentenceTransformer(
+        "sentence-transformers/all-MiniLM-L6-v2",
+        local_files_only=os.environ.get("ATHENA_MODEL_DOWNLOADS", "0") != "1",
+    )
 
 
 class EmbeddingManager:
 
     def __init__(self):
 
-        print("Loading embedding model...")
-
-        self.model = SentenceTransformer(
-            "sentence-transformers/all-MiniLM-L6-v2"
-        )
-
-        print("Embedding model loaded.")
+        self.model = None
 
     def create_embedding(self, text):
 
+        if self.model is None:
+            self.model = _model()
         embedding = self.model.encode(
             text,
             normalize_embeddings=True

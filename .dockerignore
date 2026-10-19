@@ -1,0 +1,13 @@
+.git
+.venv
+data
+backups
+phase11_work
+.env
+*.zip
+**/__pycache__
+**/*backup*
+**/*pre_cleanup*
+*.patch
+*.txt
+!requirements.txt

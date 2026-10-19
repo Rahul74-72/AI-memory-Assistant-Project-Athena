@@ -1,0 +1,6 @@
+# Install in a separate environment; LoRA training is separate from serving.
+torch>=2.6,<3
+transformers>=4.51,<6
+peft>=0.15,<1
+accelerate>=1,<2
+datasets>=3,<5

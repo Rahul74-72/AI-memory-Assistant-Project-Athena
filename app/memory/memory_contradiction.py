@@ -6,8 +6,15 @@ from app.database.models import Memory
 
 class MemoryContradiction:
 
-    def __init__(self):
+    def __init__(self, user_id):
+        if (
+            isinstance(user_id, bool)
+            or not isinstance(user_id, int)
+            or user_id <= 0
+        ):
+            raise ValueError("Valid user_id required")
 
+        self.user_id = user_id
         self.session = SessionLocal()
 
         self.single_value_relations = {
@@ -37,7 +44,8 @@ class MemoryContradiction:
         stmt = (
             select(Memory)
             .where(
-                Memory.active.is_(True)
+                Memory.user_id == self.user_id,
+                Memory.active.is_(True),
             )
             .order_by(
                 Memory.id
@@ -222,6 +230,9 @@ class MemoryContradiction:
         memories = contradiction[
             "memories"
         ]
+
+        if any(memory.user_id != self.user_id for memory in memories):
+            raise ValueError("Memory belongs to another user.")
 
         if len(memories) < 2:
 

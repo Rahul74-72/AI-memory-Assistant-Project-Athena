@@ -7,12 +7,17 @@ from app.database.models import Memory
 
 class MemoryConsolidation:
 
-    def __init__(self):
+    def __init__(self, user_id):
+        if (
+            isinstance(user_id, bool)
+            or not isinstance(user_id, int)
+            or user_id <= 0
+        ):
+            raise ValueError("Valid user_id required")
 
+        self.user_id = user_id
         self.session = SessionLocal()
-
         self.embedding_manager = EmbeddingManager()
-
         self.similarity_threshold = 0.90
 
     # =====================================================
@@ -27,6 +32,7 @@ class MemoryConsolidation:
         stmt = (
             select(Memory)
             .where(
+                Memory.user_id == self.user_id,
                 Memory.active.is_(True)
             )
             .order_by(
@@ -222,6 +228,9 @@ class MemoryConsolidation:
         similarity=None
     ):
 
+        if primary.user_id != self.user_id or secondary.user_id != self.user_id:
+            raise ValueError("Memory belongs to another user.")
+
         # -------------------------------------------------
         # Safety checks
         # -------------------------------------------------
@@ -392,6 +401,7 @@ class MemoryConsolidation:
         stmt = (
             select(Memory)
             .where(
+                Memory.user_id == self.user_id,
                 Memory.active.is_(True)
             )
             .order_by(

@@ -3,9 +3,16 @@ from app.memory.memory_store import MemoryStore
 
 class ContextualMemoryRetriever:
 
-    def __init__(self):
+    def __init__(self, user_id):
+        if (
+            isinstance(user_id, bool)
+            or not isinstance(user_id, int)
+            or user_id <= 0
+        ):
+            raise ValueError("Valid user_id required")
 
-        self.memory_store = MemoryStore()
+        self.user_id = user_id
+        self.memory_store = MemoryStore(user_id=user_id)
 
     # =====================================================
     # CONTEXT KEYWORDS

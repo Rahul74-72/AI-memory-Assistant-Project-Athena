@@ -1,6 +1,7 @@
-﻿from datetime import datetime
+from datetime import datetime
 
 from sqlalchemy import select
+from app.settings import require_user_id
 
 from app.memory.importance_calibrator import ImportanceCalibrator
 from app.memory.memory_decay import MemoryDecay
@@ -17,23 +18,23 @@ from app.database.models import Memory
 
 class MemoryStore:
 
-    def __init__(self):
-
+    def __init__(self, user_id):
+        self.user_id = require_user_id(user_id)
         self.session = SessionLocal()
-
         self.importance_calibrator = ImportanceCalibrator()
-
         self.embedding_manager = EmbeddingManager()
-
         self.memory_decay = MemoryDecay()
-
         self.memory_reinforcement = MemoryReinforcement()
-
         self.memory_lifecycle = MemoryLifecycle()
-
-        self.adaptive_prioritization = (
-            AdaptiveMemoryPrioritization()
+        # Adaptive prioritization reads Memory rows directly, so it must use
+        # the same tenant scope as this store.
+        self.adaptive_prioritization = AdaptiveMemoryPrioritization(
+            user_id=user_id
         )
+
+    def _owner_filter(self):
+        require_user_id(self.user_id)
+        return Memory.user_id == self.user_id
 
     # =====================================================
     # SAVE / UPDATE MEMORY
@@ -100,7 +101,8 @@ class MemoryStore:
 
         # Find existing active memories for this subject/relation
         stmt = select(Memory).where(
-            Memory.subject == subject,
+            self._owner_filter(),
+Memory.subject == subject,
             Memory.relation == relation,
             Memory.active.is_(True)
         )
@@ -158,6 +160,8 @@ class MemoryStore:
                     }
 
             memory = Memory(
+
+                user_id=self.user_id,
                 subject=subject,
                 relation=relation,
                 value=value,
@@ -256,6 +260,8 @@ class MemoryStore:
                 archived_count += 1
 
             new_memory = Memory(
+
+                user_id=self.user_id,
                 subject=subject,
                 relation=relation,
                 value=value,
@@ -283,6 +289,7 @@ class MemoryStore:
         # First value for this relation
         # -------------------------------------------------
         new_memory = Memory(
+            user_id=self.user_id,
             subject=subject,
             relation=relation,
             value=value,
@@ -338,7 +345,8 @@ class MemoryStore:
     """
 
      stmt = select(Memory).where(
-        Memory.subject == subject,
+        self._owner_filter(),
+Memory.subject == subject,
         Memory.active.is_(True)
     )
 
@@ -389,7 +397,8 @@ class MemoryStore:
     """
 
         stmt = select(Memory).where(
-        Memory.subject == subject,
+        self._owner_filter(),
+Memory.subject == subject,
         Memory.active.is_(True)
     )
 
@@ -436,7 +445,8 @@ class MemoryStore:
         # -----------------------------------------
 
         stmt = select(Memory).where(
-            Memory.active.is_(True)
+            self._owner_filter(),
+Memory.active.is_(True)
         )
 
         memories = (
@@ -922,7 +932,8 @@ class MemoryStore:
         stmt = (
             select(Memory)
             .where(
-                Memory.relation == relation,
+                self._owner_filter(),
+Memory.relation == relation,
                 Memory.active.is_(True),
                 Memory.lifecycle_state != "archived"
             )
@@ -947,7 +958,8 @@ class MemoryStore:
         stmt = (
             select(Memory)
             .where(
-                Memory.active.is_(True),
+                self._owner_filter(),
+Memory.active.is_(True),
                 Memory.lifecycle_state != "archived"
             )
             .order_by(
@@ -977,7 +989,8 @@ class MemoryStore:
         """
 
         stmt = select(Memory).where(
-            Memory.subject == subject
+            self._owner_filter(),
+Memory.subject == subject
         )
 
         if relation is not None:
@@ -1029,7 +1042,8 @@ class MemoryStore:
             )
 
         stmt = select(Memory).where(
-            Memory.subject == subject,
+            self._owner_filter(),
+Memory.subject == subject,
             Memory.valid_from.is_not(None),
             Memory.valid_from <= as_of,
             (
@@ -1125,7 +1139,8 @@ class MemoryStore:
             raise ValueError("start must be earlier than end")
 
         stmt = select(Memory).where(
-            Memory.subject == subject,
+            self._owner_filter(),
+Memory.subject == subject,
             Memory.valid_from.is_not(None),
             Memory.valid_to.is_not(None),
             Memory.valid_from < end,

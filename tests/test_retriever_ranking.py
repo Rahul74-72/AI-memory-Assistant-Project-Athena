@@ -71,6 +71,7 @@ def test_score_memory_prefers_subject_match_over_category_match():
 
 def test_search_can_limit_ranked_results():
     retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.user_id = 1
     memories = [
         make_memory(subject="Athena", importance=5),
         make_memory(subject="Athena", importance=9),
@@ -90,6 +91,7 @@ def test_search_can_limit_ranked_results():
 
 def test_search_rejects_negative_limit():
     retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.user_id = 1
     retriever.session = MagicMock()
 
     with pytest.raises(ValueError, match="non-negative"):
@@ -98,6 +100,7 @@ def test_search_rejects_negative_limit():
 
 def test_search_rejects_non_integer_limit():
     retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.user_id = 1
     retriever.session = MagicMock()
 
     with pytest.raises(TypeError, match="integer"):
@@ -106,6 +109,7 @@ def test_search_rejects_non_integer_limit():
 
 def test_search_rejects_boolean_limit():
     retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.user_id = 1
     retriever.session = MagicMock()
 
     with pytest.raises(TypeError, match="integer"):
@@ -114,6 +118,7 @@ def test_search_rejects_boolean_limit():
 
 def test_search_rejects_non_string_question():
     retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.user_id = 1
     retriever.session = MagicMock()
 
     with pytest.raises(TypeError, match="question must be a string"):
@@ -122,6 +127,7 @@ def test_search_rejects_non_string_question():
 
 def test_search_with_zero_limit_skips_database_query():
     retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.user_id = 1
     retriever.session = MagicMock()
 
     assert retriever.search("Athena", limit=0) == []
@@ -130,6 +136,7 @@ def test_search_with_zero_limit_skips_database_query():
 
 def test_search_with_no_meaningful_words_skips_database_query():
     retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.user_id = 1
     retriever.session = MagicMock()
 
     assert retriever.search("a an the") == []
@@ -138,6 +145,7 @@ def test_search_with_no_meaningful_words_skips_database_query():
 
 def test_search_with_whitespace_only_question_skips_database_query():
     retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.user_id = 1
     retriever.session = MagicMock()
 
     assert retriever.search("   \t\n") == []
@@ -146,6 +154,7 @@ def test_search_with_whitespace_only_question_skips_database_query():
 
 def test_search_uses_importance_to_break_relevance_ties():
     retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.user_id = 1
     high = make_memory(subject="Athena", importance=9)
     low = make_memory(subject="Athena", importance=2)
 
@@ -159,6 +168,7 @@ def test_search_uses_importance_to_break_relevance_ties():
 
 def test_search_uses_memory_id_to_break_full_score_ties():
     retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.user_id = 1
     newer = make_memory(subject="Athena", importance=5, id=20)
     older = make_memory(subject="Athena", importance=5, id=10)
 
@@ -172,6 +182,7 @@ def test_search_uses_memory_id_to_break_full_score_ties():
 
 def test_search_queries_only_active_memories():
     retriever = MemoryRetriever.__new__(MemoryRetriever)
+    retriever.user_id = 1
     active = make_memory(subject="Athena", active=True)
 
     result = MagicMock()

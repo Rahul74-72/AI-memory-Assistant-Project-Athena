@@ -8,7 +8,15 @@ from app.database.models import Memory
 
 class MemoryRetriever:
 
-    def __init__(self):
+    def __init__(self, user_id):
+        if (
+            isinstance(user_id, bool)
+            or not isinstance(user_id, int)
+            or user_id <= 0
+        ):
+            raise ValueError("Valid user_id required")
+
+        self.user_id = user_id
         self.session = SessionLocal()
 
     @staticmethod
@@ -78,6 +86,7 @@ class MemoryRetriever:
         results = []
 
         stmt = select(Memory).where(
+            Memory.user_id == self.user_id,
             Memory.active.is_(True)
         )
 

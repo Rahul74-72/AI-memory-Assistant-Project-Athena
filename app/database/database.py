@@ -1,6 +1,7 @@
 from pathlib import Path
+from app.settings import DATA_DIR
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -9,8 +10,8 @@ from sqlalchemy.orm import sessionmaker
 # ----------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parents[2]
-DATABASE_DIR = BASE_DIR / "data"
-DATABASE_DIR.mkdir(exist_ok=True)
+DATABASE_DIR = DATA_DIR
+DATABASE_DIR.mkdir(parents=True, exist_ok=True)
 
 DATABASE_PATH = DATABASE_DIR / "memory.db"
 
@@ -23,8 +24,15 @@ DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
 engine = create_engine(
     DATABASE_URL,
     echo=False,
-    future=True
+    future=True,
+    connect_args={"check_same_thread": False, "timeout": 30},
 )
+
+
+@event.listens_for(engine, "connect")
+def configure_sqlite(connection, record):
+    connection.execute("PRAGMA foreign_keys = ON")
+    connection.execute("PRAGMA busy_timeout = 30000")
 
 # ----------------------------------------
 # Session Factory

@@ -4,14 +4,17 @@ from app.extractor.extractor import MemoryExtractor
 from app.context.context_builder import MemoryContextBuilder
 from app.llm.reasoner import AIReasoner
 import re
+from app.settings import require_user_id
+from app.extractor.nlp import NLPExtractor
 
 
 class ChatEngine:
 
-    def __init__(self):
-        self.memory = MemoryManager()
-        self.memory_store = MemoryStore()
-        self.extractor = MemoryExtractor()
+    def __init__(self, user_id):
+        self.user_id = require_user_id(user_id)
+        self.memory = MemoryManager(user_id=user_id)
+        self.memory_store = MemoryStore(user_id=user_id)
+        self.extractor = NLPExtractor()
         self.context_builder = MemoryContextBuilder(
             max_memories=5
         )
@@ -635,10 +638,16 @@ class ChatEngine:
             response = forget_response
             memory_action = None
         else:
-            memory_data = self.extractor.extract(user)
+            extracted = (
+                self.extractor.extract_many(user)
+                if hasattr(self.extractor, "extract_many")
+                else [self.extractor.extract(user)]
+            )
             memory_action = None
 
-            if memory_data["save"]:
+            for memory_data in extracted:
+                if not memory_data.get("save"):
+                    continue
                 result = self.memory_store.save_memory(
                     subject=memory_data["subject"],
                     relation=memory_data["relation"],
@@ -649,6 +658,8 @@ class ChatEngine:
                 memory_action = result["action"]
 
             response = self.generate_response(user)
+            if response == "I'll remember that." and memory_action is None:
+                response = self.reasoner.answer_general(user_question=user, conversation_context="")
 
         self.memory.save_message("AI", response)
 

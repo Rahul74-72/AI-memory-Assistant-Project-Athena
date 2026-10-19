@@ -1,11 +1,5 @@
-from app.database.database import Base, engine
-from app.database import models
-from app.database.migrations import migrate_temporal_memory
+"""Start the authenticated local web workspace."""
+from scripts.start import main
 
-from app.chat.chat import ChatEngine
-
-Base.metadata.create_all(bind=engine)
-migrate_temporal_memory()
-assistant = ChatEngine()
-
-assistant.chat()
+if __name__ == "__main__":
+    main()

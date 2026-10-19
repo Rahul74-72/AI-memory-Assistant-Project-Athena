@@ -5,6 +5,7 @@ __pycache__/
 
 # Virtual environment
 .venv/
+.training-venv/
 venv/
 env/
 
@@ -38,8 +39,26 @@ Thumbs.db
 
 # Model/cache files
 .cache/
-# Local-only tests and evaluation artifacts
-/tests/
-**/test_*.py
-**/*_test.py
-/app/evaluation/
+# Private local artifacts (regression tests must be versioned)
+/data/
+/backups/
+/phase11_work/
+*.zip
+
+# Local review and recovery artifacts
+*.broken_backup
+*.phase10_backup
+*_backup.py
+!scripts/verify_backup.py
+*_pre_cleanup.py
+*_review.txt
+*_diff.txt
+*review*.txt
+*.patch
+chat_committed_snapshot.py
+memory_store_head.txt
+scripts/review_video.py
+
+*.safetensors
+*.gguf
+!/.env.example

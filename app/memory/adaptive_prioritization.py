@@ -9,13 +9,20 @@ from app.memory.memory_reinforcement import MemoryReinforcement
 
 class AdaptiveMemoryPrioritization:
 
-    def __init__(self):
+    def __init__(self, user_id):
+        if (
+            isinstance(user_id, bool)
+            or not isinstance(user_id, int)
+            or user_id <= 0
+        ):
+            raise ValueError("Valid user_id required")
 
+        self.user_id = user_id
         self.session = SessionLocal()
+        self.memory_reinforcement = MemoryReinforcement()
 
-        self.memory_reinforcement = (
-            MemoryReinforcement()
-        )
+    def _owner_filter(self):
+        return Memory.user_id == self.user_id
 
     # =====================================================
     # GET ACTIVE MEMORIES
@@ -29,7 +36,8 @@ class AdaptiveMemoryPrioritization:
         stmt = (
             select(Memory)
             .where(
-                Memory.active.is_(True)
+                self._owner_filter(),
+                Memory.active.is_(True),
             )
             .order_by(
                 Memory.id

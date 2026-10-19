@@ -22,6 +22,7 @@ def make_store(db_path):
     )
 
     store = MemoryStore.__new__(MemoryStore)
+    store.user_id = 1
     store.session = session_factory()
 
     class Calibrator:

@@ -6,8 +6,15 @@ from app.database.models import Memory
 
 class MemoryAbstraction:
 
-    def __init__(self):
+    def __init__(self, user_id):
+        if (
+            isinstance(user_id, bool)
+            or not isinstance(user_id, int)
+            or user_id <= 0
+        ):
+            raise ValueError("Valid user_id required")
 
+        self.user_id = user_id
         self.session = SessionLocal()
 
         # =================================================
@@ -105,6 +112,7 @@ class MemoryAbstraction:
         stmt = (
             select(Memory)
             .where(
+                Memory.user_id == self.user_id,
                 Memory.active.is_(True)
             )
             .order_by(
@@ -307,6 +315,9 @@ class MemoryAbstraction:
         candidate
     ):
 
+        if any(memory.user_id != self.user_id for memory in candidate["memories"]):
+            raise ValueError("Memory belongs to another user.")
+
         abstraction = (
             self.build_abstraction(
                 candidate
@@ -333,6 +344,7 @@ class MemoryAbstraction:
                     "abstract_" + group_name
                 ),
                 Memory.value == value,
+                Memory.user_id == self.user_id,
                 Memory.active.is_(True)
             )
         )
@@ -357,7 +369,7 @@ class MemoryAbstraction:
         # -------------------------------------------------
 
         memory = Memory(
-
+            user_id=self.user_id,
             subject="User",
 
             relation=(

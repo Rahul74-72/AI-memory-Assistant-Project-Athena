@@ -74,6 +74,7 @@ def store():
         )
 
         instance = MemoryStore.__new__(MemoryStore)
+        instance.user_id = 1
         instance.session = session_factory()
         instance.embedding_manager = FakeEmbeddings()
         instance.memory_decay = FakeDecay()
@@ -100,6 +101,7 @@ def add_memory(
     retrieval_count=0,
 ):
     memory = Memory(
+        user_id=store.user_id,
         subject="User",
         relation=relation,
         value=value,
