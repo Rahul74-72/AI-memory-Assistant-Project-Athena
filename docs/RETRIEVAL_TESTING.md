@@ -4,10 +4,10 @@ Run commands from the repository root, using a disposable virtual environment wi
 
 ```sh
 python -m pip install -r requirements-dev.txt
-python -m pytest tests/test_retriever*.py
+python -m pytest tests/test_retriever_field_weight_overlap.py tests/test_retriever_missing_fields.py tests/test_retriever_query_invariance.py tests/test_retriever_ranking.py tests/test_retriever_session_validation.py tests/test_retriever_tokens.py tests/test_retriever_user_isolation.py tests/test_retriever_word_boundaries.py
 ```
 
-On shells that do not expand filename wildcards, use explicit paths or run the full suite with `python -m pytest`.
+The explicit file paths work in PowerShell and shells that do not expand wildcards. This selects only retrieval test files. Run the full suite separately with `python -m pytest`.
 
 ## Database isolation
 
