@@ -66,7 +66,14 @@ class MemoryRetriever:
         return matched_score, memory.importance or 0
 
     def search(self, question, limit=None):
-        """Return active memories ranked by relevance, optionally capped."""
+        """Return this user\'s active memories in deterministic relevance order.
+
+        ``question`` must be a string. ``limit`` accepts None or a non-negative
+        integer (booleans are rejected); zero skips the database query.
+        Ranking uses relevance, then importance, then ascending memory ID.
+        The returned ORM objects belong to this retriever\'s session; callers
+        must call close() when finished with the retriever.
+        """
         if not isinstance(question, str):
             raise TypeError("question must be a string")
 
